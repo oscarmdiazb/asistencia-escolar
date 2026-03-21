@@ -26,6 +26,10 @@ Despliegue masivo en colegios públicos de Bogotá. Posiblemente integrado con S
 
 ---
 
+## Nombre y Marca: **AulaPresente**
+
+> ⚠️ **IMPORTANTE PARA CLAUDE:** El nombre oficial del app es **AulaPresente** (una sola palabra, con mayúscula en la A y la P). Este nombre debe usarse de forma consistente en **todo el código, textos de la interfaz, títulos, mensajes, comentarios y documentación**. Nunca usar "Control de Asistencia" como nombre del app — ese era el nombre provisional. El `<title>` del HTML, el hero de la pantalla de inicio, la pantalla de bienvenida del perfil, y cualquier referencia visible al usuario deben decir **AulaPresente**.
+
 ## El App: "AulaPresente"
 
 ### URL actual (piloto)
