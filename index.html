@@ -980,8 +980,8 @@ function initAttendance() {
   if(!cls)return;
   sess.absent=new Set();
 
-  // Check existing record: classId + eventId + date
-  const existing=S.records.find(r=>r.classId===sess.classId&&r.eventId===sess.eventId&&r.date===sess.date);
+  // Check existing record: classId + eventId + slotLabel + date (una sesión única por clase/evento/franja/día)
+  const existing=S.records.find(r=>r.classId===sess.classId&&r.eventId===sess.eventId&&r.slotLabel===sess.slotLabel&&r.date===sess.date);
   if(existing){
     existing.absentIds.forEach(id=>sess.absent.add(id));
     document.getElementById('att-alert').style.display='block';
@@ -1035,7 +1035,7 @@ function toggleAbs(id) {
 
 function saveAttendance() {
   if(!sess.classId||!sess.date||!sess.eventId)return;
-  const idx=S.records.findIndex(r=>r.classId===sess.classId&&r.eventId===sess.eventId&&r.date===sess.date);
+  const idx=S.records.findIndex(r=>r.classId===sess.classId&&r.eventId===sess.eventId&&r.slotLabel===sess.slotLabel&&r.date===sess.date);
   const rec={
     id: idx>=0?S.records[idx].id:genId('rec'),
     classId:sess.classId, eventId:sess.eventId, slotLabel:sess.slotLabel,
@@ -1489,25 +1489,31 @@ function renderStats() {
     return;
   }
 
-  // Aggregate by date
+  // Aggregate by date — each record is one session
+  // present/absent = suma de todas las sesiones del día (student-sessions)
+  // sessions = número de sesiones registradas ese día
   const byDate = {};
   recs.forEach(r => {
     const cls = getCls(r.classId); if (!cls) return;
-    const absent = r.absentIds.length;
-    const present = cls.students.length - absent;
-    if (!byDate[r.date]) byDate[r.date] = { present:0, absent:0 };
-    byDate[r.date].present += Math.max(present, 0);
-    byDate[r.date].absent  += absent;
+    const absent  = r.absentIds.length;
+    const present = Math.max(cls.students.length - absent, 0);
+    if (!byDate[r.date]) byDate[r.date] = { present:0, absent:0, sessions:0 };
+    byDate[r.date].present  += present;
+    byDate[r.date].absent   += absent;
+    byDate[r.date].sessions += 1;
   });
   const dates = Object.keys(byDate).sort();
 
-  // Summary cards
+  // Summary: total across all records (student-sessions)
   const totPresent = dates.reduce((s,d)=>s+byDate[d].present, 0);
   const totAbsent  = dates.reduce((s,d)=>s+byDate[d].absent,  0);
+  const totRecs    = recs.length;
   const totAll     = totPresent + totAbsent;
   const pct        = totAll ? Math.round(totPresent / totAll * 100) : 0;
+  const multiSession = dates.some(d => byDate[d].sessions > 1);
+
   sumEl.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:${multiSession?'4':'12'}px">
       <div style="background:var(--white);border-radius:var(--rs);padding:10px 8px;text-align:center;box-shadow:var(--shadow)">
         <div style="font-family:var(--fh);font-size:1.3rem;font-weight:900;color:var(--verde)">${totPresent}</div>
         <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Presentes</div>
@@ -1520,7 +1526,11 @@ function renderStats() {
         <div style="font-family:var(--fh);font-size:1.3rem;font-weight:900;color:var(--azul)">${pct}%</div>
         <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Asistencia</div>
       </div>
-    </div>`;
+    </div>
+    ${multiSession ? `<div style="background:#FFF8E1;border:1.5px solid var(--amarillo);border-radius:8px;padding:8px 12px;font-size:.75rem;color:#7A5C00;margin-bottom:12px;line-height:1.5">
+      ℹ️ Hay días con <strong>varias sesiones registradas</strong> (ej: Matemáticas 9–11 y Lengua 3–5). Los conteos suman todas las sesiones del día — el <strong>% de asistencia</strong> es el promedio ponderado.
+    </div>` : ''}
+    <div style="font-size:.72rem;color:var(--text2);margin-bottom:10px;text-align:right">${totRecs} sesión${totRecs!==1?'es':''} registrada${totRecs!==1?'s':''}</div>`;
 
   // Draw charts after layout
   requestAnimationFrame(() => {
@@ -1590,6 +1600,12 @@ function drawAttChart(dates, byDate, area) {
     ctx.font = `bold 10px 'Nunito', sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText(`${parseInt(dy)}/${parseInt(m)}`, x, pad.top + cH + 14);
+    // Si hubo varias sesiones ese día, marcar con asterisco
+    if (d.sessions > 1) {
+      ctx.fillStyle = '#F47920';
+      ctx.font = `bold 9px 'Nunito', sans-serif`;
+      ctx.fillText(`×${d.sessions}ses`, x, pad.top + cH + 25);
+    }
   });
 }
 
