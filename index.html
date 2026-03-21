@@ -733,7 +733,10 @@ function loadDefaults() {
     ];
   }
   // Slots start empty — el usuario agrega sus propias franjas
-  if (S.classes.length === 0) loadExampleClass();
+  if (S.classes.length === 0) {
+    loadExampleClass();
+    loadExampleRecords(); // 10 registros de demo para ver las estadísticas
+  }
 }
 
 function loadExampleClass() {
@@ -757,6 +760,52 @@ function loadExampleClass() {
       {id:'e15',simat:'1023456715',apellido1:'VARGAS',   apellido2:'LONDOÑO',  nombre1:'SERGIO',  nombre2:'IVÁN'},
     ],
     createdAt: new Date().toISOString()
+  });
+}
+
+function loadExampleRecords() {
+  // 10 registros de ejemplo: misma clase y franja, distintas fechas (últimos 14 días hábiles)
+  // Ausencias variadas para que las gráficas muestren tendencia interesante
+  const slot  = '9:00 – 11:00';
+  const evIds = ['ev1','ev1','ev2','ev1','ev2','ev1','ev2','ev1','ev2','ev1']; // Mate/Lenguaje
+  // Índices de estudiantes ausentes por sesión (sobre los 15 estudiantes e01–e15)
+  const absPat = [
+    ['e03','e09'],                          // día 1: 2 ausentes (87%)
+    ['e01','e05','e12'],                    // día 2: 3 ausentes (80%)
+    ['e07'],                               // día 3: 1 ausente  (93%)
+    ['e02','e06','e10','e14'],             // día 4: 4 ausentes (73%)
+    ['e04','e11'],                         // día 5: 2 ausentes (87%)
+    [],                                    // día 6: 0 ausentes (100%)
+    ['e03','e08','e13'],                   // día 7: 3 ausentes (80%)
+    ['e01','e05','e09','e12','e15'],       // día 8: 5 ausentes (67%)
+    ['e02','e07'],                         // día 9: 2 ausentes (87%)
+    ['e04','e10','e14'],                   // día 10: 3 ausentes (80%)
+  ];
+
+  // Genera fechas de días hábiles hacia atrás desde hoy
+  const dates = [];
+  let daysBack = 1;
+  while (dates.length < 10 && daysBack < 40) {
+    const d = new Date();
+    d.setDate(d.getDate() - daysBack);
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) dates.push(d.toLocaleDateString('sv'));
+    daysBack++;
+  }
+  dates.reverse(); // cronológico: más antiguo primero
+
+  dates.forEach((date, i) => {
+    S.records.push({
+      id: 'rec_ej_' + i,
+      classId: 'cls_ej',
+      eventId: evIds[i],
+      slotLabel: slot,
+      date: date,
+      absentIds: absPat[i],
+      savedAt: date + 'T10:30:00.000Z',
+      facilitador: { nombre:'Ejemplo Docente', idPersonal:'12345678',
+        institucion:'IED República de Bolivia', idInstitucion:'110001001', rol:'Docente' }
+    });
   });
 }
 
