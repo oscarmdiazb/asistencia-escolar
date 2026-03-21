@@ -1,0 +1,17 @@
+# Presentaciones (archivos locales, no subir al repo)
+presentaciones/
+
+# Archivos auxiliares de LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.snm
+*.nav
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# Sistema
+.DS_Store
+Thumbs.db
