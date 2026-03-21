@@ -411,20 +411,19 @@
           <label class="fl">Nombre del grupo <span class="req">*</span></label>
           <input class="fi" id="cls-name" type="text" placeholder="Ej: 7A · Matemáticas" autocomplete="off">
         </div>
-        <div class="frow">
-          <div class="fg">
-            <label class="fl">Colegio</label>
-            <input class="fi" id="cls-school" type="text" placeholder="IED..." autocomplete="off">
-          </div>
-          <div class="fg">
-            <label class="fl">Grado</label>
-            <select class="fsel" id="cls-grade">
-              <option value="">—</option>
-              <option value="6">Grado 6</option><option value="7">Grado 7</option>
-              <option value="8">Grado 8</option><option value="9">Grado 9</option>
-              <option value="10">Grado 10</option><option value="11">Grado 11</option>
-            </select>
-          </div>
+        <div class="fg">
+          <label class="fl">Grado</label>
+          <select class="fsel" id="cls-grade">
+            <option value="">—</option>
+            <option value="Preescolar">Preescolar</option>
+            <option value="1">Grado 1</option><option value="2">Grado 2</option>
+            <option value="3">Grado 3</option><option value="4">Grado 4</option>
+            <option value="5">Grado 5</option><option value="6">Grado 6</option>
+            <option value="7">Grado 7</option><option value="8">Grado 8</option>
+            <option value="9">Grado 9</option><option value="10">Grado 10</option>
+            <option value="11">Grado 11</option>
+          </select>
+          <div class="fhint">El colegio es el de tu perfil: <strong id="cls-school-hint" style="color:var(--text)">—</strong></div>
         </div>
       </div>
 
@@ -452,7 +451,7 @@
       <div class="card cb">
         <textarea class="fta" id="import-ta" placeholder="1001234567, RODRÍGUEZ, VARGAS, ANA, MARÍA&#10;1001234568, PÉREZ, GÓMEZ, CARLOS,&#10;..." style="margin-bottom:8px"></textarea>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn bs" style="flex:1" onclick="importStu()">📥 Pegar y importar</button>
+          <button class="btn bs" style="flex:1" onclick="importStu()">📥 Pegar e importar</button>
           <label class="btn bs" style="flex:1;cursor:pointer;margin:0">
             📁 Importar archivo
             <input type="file" id="import-file" accept=".csv,.txt" style="display:none" onchange="handleImportFile(event)">
@@ -620,11 +619,18 @@
     <div class="content nb" style="padding:14px">
       <div id="stats-summary"></div>
       <div class="chart-card">
-        <div class="chart-title">Asistencia por fecha</div>
+        <div class="chart-title">Estudiantes por fecha</div>
         <div id="stats-chart-area" style="min-height:180px"></div>
         <div class="legend-row">
           <div class="leg-item"><div class="leg-dot" style="background:var(--verde)"></div>Presentes</div>
           <div class="leg-item"><div class="leg-dot" style="background:var(--rojo)"></div>Ausentes</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">% Asistencia por fecha</div>
+        <div id="stats-line-area" style="min-height:180px"></div>
+        <div class="legend-row">
+          <div class="leg-item"><div class="leg-dot" style="background:var(--azul);border-radius:50%"></div>% Asistencia diaria</div>
         </div>
       </div>
     </div>
@@ -712,34 +718,17 @@ function save() {
 function loadDefaults() {
   if (S.events.length === 0) {
     S.events = [
-      {id:'ev0', name:'Clase regular',          def:true},
-      {id:'ev1', name:'Matemáticas',            def:true},
-      {id:'ev2', name:'Lenguaje',               def:true},
-      {id:'ev3', name:'Sesión 1 – Emociones',   def:true},
-      {id:'ev4', name:'Sesión 2 – Empatía',      def:true},
-      {id:'ev5', name:'Sesión 3 – Convivencia',  def:true},
-      {id:'ev6', name:'Sesión 4 – Restaurativa', def:true},
-      {id:'ev7', name:'Taller / Actividad',      def:true},
-      {id:'ev8', name:'Evaluación',              def:true},
+      {id:'ev1', name:'Matemáticas', def:true},
+      {id:'ev2', name:'Lenguaje',    def:true},
     ];
   }
-  if (S.slots.length === 0) {
-    S.slots = [
-      {id:'sl0', label:'6:30 – 8:00',   def:true},
-      {id:'sl1', label:'8:00 – 9:30',   def:true},
-      {id:'sl2', label:'9:30 – 11:00',  def:true},
-      {id:'sl3', label:'11:00 – 12:30', def:true},
-      {id:'sl4', label:'12:30 – 14:00', def:true},
-      {id:'sl5', label:'14:00 – 15:30', def:true},
-      {id:'sl6', label:'15:30 – 17:00', def:true},
-    ];
-  }
+  // Slots start empty — el usuario agrega sus propias franjas
   if (S.classes.length === 0) loadExampleClass();
 }
 
 function loadExampleClass() {
   S.classes.push({
-    id:'cls_ej', name:'7A', school:'IED República de Bolivia', grade:'7',
+    id:'cls_ej', name:'★ EJEMPLO — puedes eliminarme', school:'IED República de Bolivia', grade:'7',
     students:[
       {id:'e01',simat:'1023456701',apellido1:'ACOSTA',   apellido2:'BERMÚDEZ', nombre1:'LUIS',    nombre2:'FERNANDO'},
       {id:'e02',simat:'1023456702',apellido1:'CAMACHO',  apellido2:'RÍOS',     nombre1:'SOFÍA',   nombre2:'ALEJANDRA'},
@@ -1099,8 +1088,8 @@ function openAddClass() {
   edClsId=null; pendStu=[];
   document.getElementById('edit-cls-title').textContent='Nueva Clase';
   document.getElementById('cls-name').value='';
-  document.getElementById('cls-school').value='';
   document.getElementById('cls-grade').value='';
+  document.getElementById('cls-school-hint').textContent=S.profile.institucion||'(sin colegio en perfil)';
   clearStuForm();
   document.getElementById('import-ta').value='';
   renderPendStu();
@@ -1112,8 +1101,8 @@ function openEditClass(id) {
   edClsId=id; pendStu=cls.students.map(s=>({...s}));
   document.getElementById('edit-cls-title').textContent='Editar Clase';
   document.getElementById('cls-name').value=cls.name;
-  document.getElementById('cls-school').value=cls.school||'';
   document.getElementById('cls-grade').value=cls.grade||'';
+  document.getElementById('cls-school-hint').textContent=S.profile.institucion||cls.school||'(sin colegio en perfil)';
   clearStuForm();
   document.getElementById('import-ta').value='';
   renderPendStu();
@@ -1186,7 +1175,7 @@ function importStu() {
 
 function saveClass() {
   const name=document.getElementById('cls-name').value.trim();
-  const school=document.getElementById('cls-school').value.trim();
+  const school=S.profile.institucion||'';
   const grade=document.getElementById('cls-grade').value;
   if(!name){toast('El nombre del grupo es obligatorio','err');return;}
   if(edClsId){
@@ -1492,8 +1481,10 @@ function renderStats() {
   const area = document.getElementById('stats-chart-area');
   const sumEl = document.getElementById('stats-summary');
 
+  const lineArea = document.getElementById('stats-line-area');
   if (!recs.length) {
     area.innerHTML = '<div class="empty"><div class="ei">📈</div><h3>Sin datos aún</h3><p>Toma asistencia para ver estadísticas aquí</p></div>';
+    lineArea.innerHTML = '';
     sumEl.innerHTML = '';
     return;
   }
@@ -1531,8 +1522,11 @@ function renderStats() {
       </div>
     </div>`;
 
-  // Draw chart after layout
-  requestAnimationFrame(() => drawAttChart(dates, byDate, area));
+  // Draw charts after layout
+  requestAnimationFrame(() => {
+    drawAttChart(dates, byDate, area);
+    drawLineChart(dates, byDate, lineArea);
+  });
 }
 
 function drawAttChart(dates, byDate, area) {
@@ -1615,6 +1609,103 @@ function fillBar(ctx, x, y, w, h, r, roundTop, roundBot) {
   if (rt) ctx.quadraticCurveTo(x, y, x+rt, y); else ctx.lineTo(x, y);
   ctx.closePath();
   ctx.fill();
+}
+
+function drawLineChart(dates, byDate, area) {
+  area.innerHTML = '<canvas id="line-canvas"></canvas>';
+  const canvas = document.getElementById('line-canvas');
+  const W = area.offsetWidth || 320;
+  const H = 200;
+  const PR = window.devicePixelRatio || 1;
+  canvas.width  = W * PR;
+  canvas.height = H * PR;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(PR, PR);
+
+  const pad = { top:20, right:16, bottom:44, left:42 };
+  const cW = W - pad.left - pad.right;
+  const cH = H - pad.top - pad.bottom;
+
+  // Grid lines for 0%, 25%, 50%, 75%, 100%
+  const yTicks = [0, 25, 50, 75, 100];
+  ctx.font = `10px 'Nunito Sans', sans-serif`;
+  ctx.textAlign = 'right';
+  yTicks.forEach(pct => {
+    const y = pad.top + cH - (pct / 100) * cH;
+    ctx.strokeStyle = pct === 100 ? '#C8D0E0' : '#E0E4EF';
+    ctx.lineWidth = pct === 100 ? 1.5 : 1;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cW, y); ctx.stroke();
+    ctx.fillStyle = '#999AAA';
+    ctx.fillText(pct + '%', pad.left - 4, y + 3.5);
+  });
+
+  // Compute pct per date
+  const n = dates.length;
+  const points = dates.map(date => {
+    const d = byDate[date];
+    const tot = d.present + d.absent;
+    return tot > 0 ? d.present / tot * 100 : null;
+  });
+
+  const groupW = cW / Math.max(n, 1);
+  const xs = dates.map((_, i) => pad.left + i * groupW + groupW / 2);
+  const ys = points.map(p => p !== null ? pad.top + cH - (p / 100) * cH : null);
+
+  // Gradient fill under line
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + cH);
+  grad.addColorStop(0, 'rgba(58,171,227,0.25)');
+  grad.addColorStop(1, 'rgba(58,171,227,0)');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  let started = false;
+  xs.forEach((x, i) => {
+    if (ys[i] === null) return;
+    if (!started) { ctx.moveTo(x, ys[i]); started = true; }
+    else ctx.lineTo(x, ys[i]);
+  });
+  if (started) {
+    // close to bottom
+    for (let i = xs.length - 1; i >= 0; i--) { if (ys[i] !== null) { ctx.lineTo(xs[i], pad.top + cH); break; } }
+    for (let i = 0; i < xs.length; i++) { if (ys[i] !== null) { ctx.lineTo(xs[i], pad.top + cH); break; } }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Line
+  ctx.strokeStyle = '#3AABE3';
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  started = false;
+  xs.forEach((x, i) => {
+    if (ys[i] === null) { started = false; return; }
+    if (!started) { ctx.moveTo(x, ys[i]); started = true; }
+    else ctx.lineTo(x, ys[i]);
+  });
+  ctx.stroke();
+
+  // Dots + value labels
+  xs.forEach((x, i) => {
+    if (ys[i] === null) return;
+    const pct = points[i];
+    // dot
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath(); ctx.arc(x, ys[i], 5, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = '#3AABE3'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, ys[i], 5, 0, Math.PI*2); ctx.stroke();
+    // value label
+    ctx.fillStyle = '#3AABE3';
+    ctx.font = `bold 10px 'Nunito', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(Math.round(pct) + '%', x, ys[i] - 9);
+    // X date label
+    const [,m,dy] = dates[i].split('-');
+    ctx.fillStyle = '#666677';
+    ctx.font = `bold 10px 'Nunito', sans-serif`;
+    ctx.fillText(`${parseInt(dy)}/${parseInt(m)}`, x, pad.top + cH + 14);
+  });
 }
 
 /* ═══════════════════════════════════
