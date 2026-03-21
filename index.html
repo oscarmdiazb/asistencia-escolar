@@ -412,20 +412,37 @@
           <label class="fl">Nombre del grupo <span class="req">*</span></label>
           <input class="fi" id="cls-name" type="text" placeholder="Ej: 7A · Matemáticas" autocomplete="off">
         </div>
-        <div class="fg">
-          <label class="fl">Grado</label>
-          <select class="fsel" id="cls-grade">
-            <option value="">—</option>
-            <option value="Preescolar">Preescolar</option>
-            <option value="1">Grado 1</option><option value="2">Grado 2</option>
-            <option value="3">Grado 3</option><option value="4">Grado 4</option>
-            <option value="5">Grado 5</option><option value="6">Grado 6</option>
-            <option value="7">Grado 7</option><option value="8">Grado 8</option>
-            <option value="9">Grado 9</option><option value="10">Grado 10</option>
-            <option value="11">Grado 11</option>
-          </select>
-          <div class="fhint">El colegio es el de tu perfil: <strong id="cls-school-hint" style="color:var(--text)">—</strong></div>
+        <div class="frow">
+          <div class="fg">
+            <label class="fl">Grado</label>
+            <select class="fsel" id="cls-grade" onchange="toggleGradeOtro()">
+              <option value="">—</option>
+              <option value="Preescolar">Preescolar</option>
+              <option value="1">Grado 1</option><option value="2">Grado 2</option>
+              <option value="3">Grado 3</option><option value="4">Grado 4</option>
+              <option value="5">Grado 5</option><option value="6">Grado 6</option>
+              <option value="7">Grado 7</option><option value="8">Grado 8</option>
+              <option value="9">Grado 9</option><option value="10">Grado 10</option>
+              <option value="11">Grado 11</option>
+              <option value="Otro">Otro</option>
+            </select>
+            <input class="fi" type="text" id="cls-grade-otro" placeholder="Ej: Multigrado 5-6" style="display:none;margin-top:6px" maxlength="40" autocomplete="off">
+          </div>
+          <div class="fg">
+            <label class="fl">Aula</label>
+            <select class="fsel" id="cls-aula" onchange="toggleAulaOtro()">
+              <option value="">—</option>
+              <option value="A">Aula A</option><option value="B">Aula B</option>
+              <option value="C">Aula C</option><option value="D">Aula D</option>
+              <option value="E">Aula E</option><option value="F">Aula F</option>
+              <option value="G">Aula G</option><option value="H">Aula H</option>
+              <option value="Multi-aula">Multi-aula</option>
+              <option value="Otro">Otro</option>
+            </select>
+            <input class="fi" type="text" id="cls-aula-otro" placeholder="Ej: A-101, Sala TIC" style="display:none;margin-top:6px" maxlength="40" autocomplete="off">
+          </div>
         </div>
+        <div class="fhint" style="margin-top:4px">El colegio es el de tu perfil: <strong id="cls-school-hint" style="color:var(--text)">—</strong></div>
       </div>
 
       <div class="stitle">Estudiantes (<span id="stu-count">0</span>)</div>
@@ -910,7 +927,7 @@ function renderAttClsList() {
       <div class="cdot ${d}"></div>
       <div class="ci">
         <div class="cn">${esc(cls.name)}</div>
-        <div class="cm">${esc(cls.school||'')}${cls.grade?(cls.school?' · ':'')+' Grado '+cls.grade:''} · ${cls.students.length} est.</div>
+        <div class="cm">${esc(cls.school||'')}${cls.grade?(cls.school?' · ':'')+' Grado '+cls.grade:''}${cls.aula?' · Aula '+cls.aula:''} · ${cls.students.length} est.</div>
       </div>
       ${hasToday?`<span class="tag-azul">✓ ${recCnt} hoy</span>`:''}
       <span style="color:#CCC;margin-left:6px">›</span>
@@ -1134,7 +1151,7 @@ function renderManage() {
       <div class="cdot ${d}"></div>
       <div class="ci">
         <div class="cn">${esc(cls.name)}</div>
-        <div class="cm">${esc(cls.school||'')}${cls.grade?(cls.school?' · ':'')+' Grado '+cls.grade:''}</div>
+        <div class="cm">${esc(cls.school||'')}${cls.grade?(cls.school?' · ':'')+' Grado '+cls.grade:''}${cls.aula?' · Aula '+cls.aula:''}</div>
       </div>
       <div class="cbadge">${cls.students.length} est.</div>
       <div class="cbadge" style="background:#EEF5FF;color:var(--azul)">${rc} reg.</div>
@@ -1143,11 +1160,47 @@ function renderManage() {
   }).join('');
 }
 
+function toggleGradeOtro() {
+  const v=document.getElementById('cls-grade').value;
+  const el=document.getElementById('cls-grade-otro');
+  el.style.display=v==='Otro'?'block':'none';
+  if(v!=='Otro') el.value='';
+}
+function toggleAulaOtro() {
+  const v=document.getElementById('cls-aula').value;
+  const el=document.getElementById('cls-aula-otro');
+  el.style.display=v==='Otro'?'block':'none';
+  if(v!=='Otro') el.value='';
+}
+
+function _setGrade(val) {
+  const predefined=['','Preescolar','1','2','3','4','5','6','7','8','9','10','11'];
+  if(predefined.includes(val)){
+    document.getElementById('cls-grade').value=val;
+    document.getElementById('cls-grade-otro').style.display='none';
+  } else {
+    document.getElementById('cls-grade').value='Otro';
+    document.getElementById('cls-grade-otro').style.display='block';
+    document.getElementById('cls-grade-otro').value=val;
+  }
+}
+function _setAula(val) {
+  const predefined=['','A','B','C','D','E','F','G','H','Multi-aula'];
+  if(predefined.includes(val)){
+    document.getElementById('cls-aula').value=val;
+    document.getElementById('cls-aula-otro').style.display='none';
+  } else {
+    document.getElementById('cls-aula').value='Otro';
+    document.getElementById('cls-aula-otro').style.display='block';
+    document.getElementById('cls-aula-otro').value=val;
+  }
+}
+
 function openAddClass() {
   edClsId=null; pendStu=[];
   document.getElementById('edit-cls-title').textContent='Nueva Clase';
   document.getElementById('cls-name').value='';
-  document.getElementById('cls-grade').value='';
+  _setGrade(''); _setAula('');
   document.getElementById('cls-school-hint').textContent=S.profile.institucion||'(sin colegio en perfil)';
   clearStuForm();
   document.getElementById('import-ta').value='';
@@ -1160,7 +1213,7 @@ function openEditClass(id) {
   edClsId=id; pendStu=cls.students.map(s=>({...s}));
   document.getElementById('edit-cls-title').textContent='Editar Clase';
   document.getElementById('cls-name').value=cls.name;
-  document.getElementById('cls-grade').value=cls.grade||'';
+  _setGrade(cls.grade||''); _setAula(cls.aula||'');
   document.getElementById('cls-school-hint').textContent=S.profile.institucion||cls.school||'(sin colegio en perfil)';
   clearStuForm();
   document.getElementById('import-ta').value='';
@@ -1235,14 +1288,17 @@ function importStu() {
 function saveClass() {
   const name=document.getElementById('cls-name').value.trim();
   const school=S.profile.institucion||'';
-  const grade=document.getElementById('cls-grade').value;
+  let grade=document.getElementById('cls-grade').value;
+  if(grade==='Otro') grade=document.getElementById('cls-grade-otro').value.trim();
+  let aula=document.getElementById('cls-aula').value;
+  if(aula==='Otro') aula=document.getElementById('cls-aula-otro').value.trim();
   if(!name){toast('El nombre del grupo es obligatorio','err');return;}
   if(edClsId){
     const i=S.classes.findIndex(c=>c.id===edClsId);
-    if(i>=0) S.classes[i]={...S.classes[i],name,school,grade,students:pendStu};
+    if(i>=0) S.classes[i]={...S.classes[i],name,school,grade,aula,students:pendStu};
     toast('Clase actualizada','ok');
   } else {
-    S.classes.push({id:genId('cls'),name,school,grade,students:pendStu,createdAt:new Date().toISOString()});
+    S.classes.push({id:genId('cls'),name,school,grade,aula,students:pendStu,createdAt:new Date().toISOString()});
     toast('Clase creada','ok');
   }
   save(); renderManage(); back();
@@ -1399,7 +1455,7 @@ function confirmDelRec(id) {
    CSV EXPORT
 ═══════════════════════════════════ */
 function buildCSV(recs) {
-  const rows=[['Facilitador','IDFacilitador','Institucion','IDInstitucion','Rol','Fecha','Colegio','Clase','Grado','Evento','FranjaHoraria','SIMAT','Apellido1','Apellido2','Nombre1','Nombre2','Estado'].join(',')];
+  const rows=[['Facilitador','IDFacilitador','Institucion','IDInstitucion','Rol','Fecha','Colegio','Clase','Grado','Aula','Evento','FranjaHoraria','SIMAT','Apellido1','Apellido2','Nombre1','Nombre2','Estado'].join(',')];
   recs.forEach(r=>{
     const cls=getCls(r.classId); if(!cls)return;
     const evt=getEvt(r.eventId);
@@ -1410,7 +1466,7 @@ function buildCSV(recs) {
         fac.nombre||S.profile.nombre||'', fac.idPersonal||S.profile.idPersonal||'',
         fac.institucion||S.profile.institucion||'', fac.idInstitucion||S.profile.idInstitucion||'',
         fac.rol||S.profile.rol||'',
-        r.date, cls.school||'', cls.name, cls.grade||'', evt?evt.name:'', r.slotLabel||'',
+        r.date, cls.school||'', cls.name, cls.grade||'', cls.aula||'', evt?evt.name:'', r.slotLabel||'',
         s.simat||'', s.apellido1||'', s.apellido2||'', s.nombre1||'', s.nombre2||'', status
       ].map(cv).join(','));
     });
@@ -1564,31 +1620,41 @@ function renderStats() {
   });
   const dates = Object.keys(byDate).sort();
 
-  // Summary: total across all records (student-sessions)
-  const totPresent = dates.reduce((s,d)=>s+byDate[d].present, 0);
-  const totAbsent  = dates.reduce((s,d)=>s+byDate[d].absent,  0);
-  const totRecs    = recs.length;
-  const totAll     = totPresent + totAbsent;
-  const pct        = totAll ? Math.round(totPresent / totAll * 100) : 0;
+  // Summary metrics
+  const totPresent   = dates.reduce((s,d)=>s+byDate[d].present, 0);
+  const totAbsent    = dates.reduce((s,d)=>s+byDate[d].absent,  0);
+  const totRecs      = recs.length;
+  const totAll       = totPresent + totAbsent;
+  const pctAsist     = totAll ? Math.round(totPresent / totAll * 100) : 0;
+  const avgPresent   = totRecs ? Math.round(totPresent / totRecs) : 0;
+  const avgAbsent    = totRecs ? +(totAbsent  / totRecs).toFixed(1) : 0;
   const multiSession = dates.some(d => byDate[d].sessions > 1);
 
+  // Total estudiantes únicos en las clases filtradas
+  const clsIds = [...new Set(recs.map(r=>r.classId))];
+  const totStudents = clsIds.reduce((s,id)=>{ const c=getCls(id); return s+(c?c.students.length:0); },0);
+
   sumEl.innerHTML = `
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:${multiSession?'4':'12'}px">
-      <div style="background:var(--white);border-radius:var(--rs);padding:10px 8px;text-align:center;box-shadow:var(--shadow)">
-        <div style="font-family:var(--fh);font-size:1.3rem;font-weight:900;color:var(--verde)">${totPresent}</div>
-        <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Presentes</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:${multiSession?'4':'12'}px">
+      <div style="background:var(--white);border-radius:var(--rs);padding:12px 8px;text-align:center;box-shadow:var(--shadow)">
+        <div style="font-family:var(--fh);font-size:1.4rem;font-weight:900;color:var(--text)">${totStudents}</div>
+        <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Total estudiantes</div>
       </div>
-      <div style="background:var(--white);border-radius:var(--rs);padding:10px 8px;text-align:center;box-shadow:var(--shadow)">
-        <div style="font-family:var(--fh);font-size:1.3rem;font-weight:900;color:var(--rojo)">${totAbsent}</div>
-        <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Ausentes</div>
+      <div style="background:var(--white);border-radius:var(--rs);padding:12px 8px;text-align:center;box-shadow:var(--shadow)">
+        <div style="font-family:var(--fh);font-size:1.4rem;font-weight:900;color:var(--azul)">${pctAsist}%</div>
+        <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">% Asistencia</div>
       </div>
-      <div style="background:var(--white);border-radius:var(--rs);padding:10px 8px;text-align:center;box-shadow:var(--shadow)">
-        <div style="font-family:var(--fh);font-size:1.3rem;font-weight:900;color:var(--azul)">${pct}%</div>
-        <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Asistencia</div>
+      <div style="background:var(--white);border-radius:var(--rs);padding:12px 8px;text-align:center;box-shadow:var(--shadow)">
+        <div style="font-family:var(--fh);font-size:1.4rem;font-weight:900;color:var(--verde)">${avgPresent}</div>
+        <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Prom. presentes/sesión</div>
+      </div>
+      <div style="background:var(--white);border-radius:var(--rs);padding:12px 8px;text-align:center;box-shadow:var(--shadow)">
+        <div style="font-family:var(--fh);font-size:1.4rem;font-weight:900;color:var(--rojo)">${avgAbsent}</div>
+        <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Prom. ausentes/sesión</div>
       </div>
     </div>
-    ${multiSession ? `<div style="background:#FFF8E1;border:1.5px solid var(--amarillo);border-radius:8px;padding:8px 12px;font-size:.75rem;color:#7A5C00;margin-bottom:12px;line-height:1.5">
-      ℹ️ Hay días con <strong>varias sesiones registradas</strong> (ej: Matemáticas 9–11 y Lengua 3–5). Los conteos suman todas las sesiones del día — el <strong>% de asistencia</strong> es el promedio ponderado.
+    ${multiSession ? `<div style="background:#FFF8E1;border:1.5px solid var(--amarillo);border-radius:8px;padding:8px 12px;font-size:.75rem;color:#7A5C00;margin-bottom:8px;line-height:1.5">
+      ℹ️ Hay días con <strong>varias sesiones</strong>. Los promedios son por sesión individual.
     </div>` : ''}
     <div style="font-size:.72rem;color:var(--text2);margin-bottom:10px;text-align:right">${totRecs} sesión${totRecs!==1?'es':''} registrada${totRecs!==1?'s':''}</div>`;
 
