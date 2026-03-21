@@ -235,6 +235,22 @@
     /* ── WhatsApp warning banner ── */
     #wa-warning{display:none;background:#FFF3CD;border:2px solid var(--amarillo);border-radius:12px;
       padding:14px;margin:12px;font-size:.85rem;font-family:var(--fh);font-weight:600;color:#7A5C00;line-height:1.5}
+
+    /* ── Stats ── */
+    .stats-header{background:linear-gradient(135deg,#1A2A4A 0%,#0D3559 100%);color:white;padding:16px 20px;flex-shrink:0}
+    .stats-header h2{font-family:var(--fh);font-weight:900;font-size:1.1rem;margin:0}
+    .chart-card{background:var(--white);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin-bottom:12px;overflow:hidden}
+    .chart-title{font-family:var(--fh);font-weight:800;font-size:.8rem;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+    #att-canvas{display:block;width:100%}
+    .legend-row{display:flex;gap:14px;justify-content:center;margin-top:8px}
+    .leg-item{display:flex;align-items:center;gap:5px;font-family:var(--fh);font-weight:700;font-size:.75rem;color:var(--text2)}
+    .leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+    /* ── Import instructions ── */
+    .import-steps{background:#F0F7FF;border:1.5px solid #B8DCFA;border-radius:10px;padding:12px 14px;margin-top:10px;font-size:.8rem;line-height:1.6;color:var(--text)}
+    .import-steps ol{padding-left:18px;margin:6px 0 0}
+    .import-steps li{margin-bottom:4px}
+    .import-code{background:#1A1A2E;color:#7FDBFF;border-radius:6px;padding:6px 10px;font-family:monospace;font-size:.78rem;margin:6px 0;display:block;word-break:break-all}
   </style>
 </head>
 <body>
@@ -274,6 +290,7 @@
     <div class="home-actions">
       <button class="btn bg" onclick="startFlow()">📋 Tomar Asistencia</button>
       <button class="btn bp" onclick="openHistory()">📊 Ver Historial</button>
+      <button class="btn bp" onclick="openStats()" style="background:var(--morado)">📈 Estadísticas</button>
       <button class="btn bs" onclick="openManage()">⚙️ Gestionar Clases</button>
       <button class="btn bs" onclick="openSettings()">🎯 Eventos y Horarios</button>
     </div>
@@ -433,9 +450,32 @@
 
       <div class="stitle">Importar lista (desde SIMAT)</div>
       <div class="card cb">
-        <p class="fhint" style="margin-bottom:8px">Una línea por estudiante:<br><strong>SIMAT, Apellido1, Apellido2, Nombre1, Nombre2</strong></p>
-        <textarea class="fta" id="import-ta" placeholder="1001234567, RODRÍGUEZ, VARGAS, ANA, MARÍA&#10;1001234568, PÉREZ, GÓMEZ, CARLOS,&#10;..."></textarea>
-        <button class="btn bs" style="margin-top:8px" onclick="importStu()">📥 Importar lista</button>
+        <textarea class="fta" id="import-ta" placeholder="1001234567, RODRÍGUEZ, VARGAS, ANA, MARÍA&#10;1001234568, PÉREZ, GÓMEZ, CARLOS,&#10;..." style="margin-bottom:8px"></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn bs" style="flex:1" onclick="importStu()">📥 Pegar y importar</button>
+          <label class="btn bs" style="flex:1;cursor:pointer;margin:0">
+            📁 Importar archivo
+            <input type="file" id="import-file" accept=".csv,.txt" style="display:none" onchange="handleImportFile(event)">
+          </label>
+        </div>
+        <div class="import-steps">
+          <strong>¿Cómo importar la lista?</strong>
+          <ol>
+            <li>Abre el listado de estudiantes del SIMAT en Excel.</li>
+            <li>Crea o reorganiza las columnas en este orden exacto:<br>
+              <code class="import-code">SIMAT, Apellido1, Apellido2, Nombre1, Nombre2</code>
+              (si un campo está vacío déjalo en blanco, pero mantén las comas)
+            </li>
+            <li>Guarda el archivo como <strong>CSV (separado por comas)</strong>: <em>Archivo → Guardar como → CSV UTF-8</em>.</li>
+            <li>Toca <strong>📁 Importar archivo</strong> y selecciona el CSV guardado.<br>
+              O copia el contenido del archivo y pégalo en el cuadro de texto, luego toca <strong>📥 Pegar y importar</strong>.</li>
+          </ol>
+          <div style="margin-top:6px;font-size:.75rem;color:var(--text2)">
+            Ejemplo de línea válida:<br>
+            <code class="import-code">1001234567, RODRÍGUEZ, VARGAS, ANA, MARÍA</code>
+            Los estudiantes ya existentes (mismo SIMAT) no se duplicarán.
+          </div>
+        </div>
       </div>
 
       <div style="margin-top:16px">
@@ -536,8 +576,18 @@
           <input class="fi" id="p-nombre" type="text" placeholder="Ej: Ana Rodríguez Vargas" autocomplete="name">
         </div>
         <div class="fg">
+          <label class="fl">Tu ID <span class="req">*</span></label>
+          <input class="fi" id="p-id" type="text" inputmode="numeric" placeholder="Cédula o número asignado por el equipo" autocomplete="off">
+          <div class="fhint">Número de cédula de ciudadanía o código asignado por el equipo.</div>
+        </div>
+        <div class="fg">
           <label class="fl">Institución / Colegio <span class="req">*</span></label>
           <input class="fi" id="p-inst" type="text" placeholder="Ej: IED República de Bolivia" autocomplete="organization">
+        </div>
+        <div class="fg">
+          <label class="fl">ID de la institución <span class="req">*</span></label>
+          <input class="fi" id="p-id-inst" type="text" inputmode="numeric" placeholder="Código DANE o número asignado" autocomplete="off">
+          <div class="fhint">Código DANE del colegio (ej: 11001012345) o número asignado por el equipo.</div>
         </div>
         <div class="fg">
           <label class="fl">Tu rol</label>
@@ -554,6 +604,29 @@
         </div>
       </div>
       <button class="btn bg" onclick="saveProfile()">✅ Guardar y comenzar</button>
+    </div>
+  </div>
+
+  <!-- ══ STATS ═════════════════════════════════════ -->
+  <div id="screen-stats" class="screen">
+    <div class="rb"></div>
+    <div class="topbar">
+      <button class="btn-icon" onclick="back()">←</button>
+      <div class="tb-title" style="flex:1">Estadísticas</div>
+    </div>
+    <div class="filter-bar">
+      <select class="fsel" id="stats-cls-filter" onchange="renderStats()" style="flex:1"></select>
+    </div>
+    <div class="content nb" style="padding:14px">
+      <div id="stats-summary"></div>
+      <div class="chart-card">
+        <div class="chart-title">Asistencia por fecha</div>
+        <div id="stats-chart-area" style="min-height:180px"></div>
+        <div class="legend-row">
+          <div class="leg-item"><div class="leg-dot" style="background:var(--verde)"></div>Presentes</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--rojo)"></div>Ausentes</div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -620,7 +693,9 @@ function load() {
   if (!S.events)  S.events  = [];
   if (!S.slots)   S.slots   = [];
   if (!S.records) S.records = [];
-  if (!S.profile) S.profile = { nombre:'', institucion:'', rol:'', saveCount:0 };
+  if (!S.profile) S.profile = { nombre:'', idPersonal:'', institucion:'', idInstitucion:'', rol:'', saveCount:0 };
+  if (!S.profile.idPersonal)    S.profile.idPersonal    = '';
+  if (!S.profile.idInstitucion) S.profile.idInstitucion = '';
 }
 
 function save() {
@@ -741,6 +816,7 @@ function back() {
     if(prev==='history')      renderHistory();
     if(prev==='manage')       renderManage();
     if(prev==='settings')     renderSettings();
+    if(prev==='stats')        renderStats();
   }
 }
 
@@ -976,9 +1052,11 @@ function saveAttendance() {
     classId:sess.classId, eventId:sess.eventId, slotLabel:sess.slotLabel,
     date:sess.date, absentIds:[...sess.absent], savedAt:new Date().toISOString(),
     facilitador: {
-      nombre: S.profile.nombre||'',
-      institucion: S.profile.institucion||'',
-      rol: S.profile.rol||''
+      nombre:        S.profile.nombre||'',
+      idPersonal:    S.profile.idPersonal||'',
+      institucion:   S.profile.institucion||'',
+      idInstitucion: S.profile.idInstitucion||'',
+      rol:           S.profile.rol||''
     }
   };
   if(idx>=0) S.records[idx]=rec; else S.records.push(rec);
@@ -1076,9 +1154,21 @@ function addStu() {
 
 function remStu(id) { pendStu=pendStu.filter(s=>s.id!==id); renderPendStu(); }
 
+function handleImportFile(event) {
+  const file = event.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('import-ta').value = e.target.result;
+    importStu();
+  };
+  reader.onerror = function() { toast('Error al leer el archivo','err'); };
+  reader.readAsText(file, 'UTF-8');
+  event.target.value = '';
+}
+
 function importStu() {
   const text=document.getElementById('import-ta').value.trim();
-  if(!text)return;
+  if(!text){toast('Pega el contenido del archivo en el cuadro de texto','err');return;}
   let added=0,skipped=0;
   text.split('\n').map(l=>l.trim()).filter(Boolean).forEach(line=>{
     const p=line.split(',').map(x=>x.trim());
@@ -1261,7 +1351,7 @@ function confirmDelRec(id) {
    CSV EXPORT
 ═══════════════════════════════════ */
 function buildCSV(recs) {
-  const rows=[['Facilitador','Institucion','Rol','Fecha','Colegio','Clase','Grado','Evento','FranjaHoraria','SIMAT','Apellido1','Apellido2','Nombre1','Nombre2','Estado'].join(',')];
+  const rows=[['Facilitador','IDFacilitador','Institucion','IDInstitucion','Rol','Fecha','Colegio','Clase','Grado','Evento','FranjaHoraria','SIMAT','Apellido1','Apellido2','Nombre1','Nombre2','Estado'].join(',')];
   recs.forEach(r=>{
     const cls=getCls(r.classId); if(!cls)return;
     const evt=getEvt(r.eventId);
@@ -1269,7 +1359,9 @@ function buildCSV(recs) {
       const status=r.absentIds.includes(s.id)?'Ausente':'Presente';
       const fac = r.facilitador || {};
       rows.push([
-        fac.nombre||S.profile.nombre||'', fac.institucion||S.profile.institucion||'', fac.rol||S.profile.rol||'',
+        fac.nombre||S.profile.nombre||'', fac.idPersonal||S.profile.idPersonal||'',
+        fac.institucion||S.profile.institucion||'', fac.idInstitucion||S.profile.idInstitucion||'',
+        fac.rol||S.profile.rol||'',
         r.date, cls.school||'', cls.name, cls.grade||'', evt?evt.name:'', r.slotLabel||'',
         s.simat||'', s.apellido1||'', s.apellido2||'', s.nombre1||'', s.nombre2||'', status
       ].map(cv).join(','));
@@ -1331,8 +1423,10 @@ function openProfile() {
   const hasProfile = S.profile && S.profile.nombre;
   document.getElementById('profile-title').textContent = hasProfile ? 'Mi Perfil' : 'Bienvenido/a 👋';
   document.getElementById('profile-back-btn').style.display = hasProfile ? 'flex' : 'none';
-  document.getElementById('p-nombre').value = S.profile.nombre || '';
-  document.getElementById('p-inst').value   = S.profile.institucion || '';
+  document.getElementById('p-nombre').value    = S.profile.nombre || '';
+  document.getElementById('p-id').value         = S.profile.idPersonal || '';
+  document.getElementById('p-inst').value       = S.profile.institucion || '';
+  document.getElementById('p-id-inst').value    = S.profile.idInstitucion || '';
   // Restore rol: if saved rol is not in the predefined list, it was a custom "Otro"
   const predefined = ['Docente','Facilitador/a ARC','Coordinador/a','Orientador/a','Director/a de Curso','Otro'];
   const savedRol = S.profile.rol || 'Docente';
@@ -1353,17 +1447,21 @@ function toggleRolOtro() {
 }
 
 function saveProfile() {
-  const nombre = document.getElementById('p-nombre').value.trim();
-  const inst   = document.getElementById('p-inst').value.trim();
-  let rol      = document.getElementById('p-rol').value;
+  const nombre      = document.getElementById('p-nombre').value.trim();
+  const idPersonal  = document.getElementById('p-id').value.trim();
+  const inst        = document.getElementById('p-inst').value.trim();
+  const idInst      = document.getElementById('p-id-inst').value.trim();
+  let rol           = document.getElementById('p-rol').value;
   if (rol === 'Otro') {
     const custom = document.getElementById('p-rol-otro').value.trim();
     if (!custom) { toast('Escribe tu rol personalizado', 'err'); return; }
     rol = custom;
   }
-  if (!nombre) { toast('Tu nombre es obligatorio', 'err'); return; }
-  if (!inst)   { toast('La institución es obligatoria', 'err'); return; }
-  S.profile = { ...S.profile, nombre, institucion: inst, rol };
+  if (!nombre)     { toast('Tu nombre es obligatorio', 'err'); return; }
+  if (!idPersonal) { toast('Tu ID es obligatorio', 'err'); return; }
+  if (!inst)       { toast('La institución es obligatoria', 'err'); return; }
+  if (!idInst)     { toast('El ID de la institución es obligatorio', 'err'); return; }
+  S.profile = { ...S.profile, nombre, idPersonal, institucion: inst, idInstitucion: idInst, rol };
   save();
   renderHome();
   toast('Perfil guardado ✅', 'ok');
@@ -1373,6 +1471,150 @@ function saveProfile() {
 
 function hideBanner() {
   document.getElementById('backup-banner').style.display = 'none';
+}
+
+/* ═══════════════════════════════════
+   STATS
+═══════════════════════════════════ */
+function openStats() {
+  document.getElementById('stats-cls-filter').innerHTML =
+    '<option value="">Todas las clases</option>' +
+    S.classes.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('');
+  renderStats();
+  go('stats');
+}
+
+function renderStats() {
+  const fc = document.getElementById('stats-cls-filter').value;
+  let recs = [...S.records];
+  if (fc) recs = recs.filter(r => r.classId === fc);
+
+  const area = document.getElementById('stats-chart-area');
+  const sumEl = document.getElementById('stats-summary');
+
+  if (!recs.length) {
+    area.innerHTML = '<div class="empty"><div class="ei">📈</div><h3>Sin datos aún</h3><p>Toma asistencia para ver estadísticas aquí</p></div>';
+    sumEl.innerHTML = '';
+    return;
+  }
+
+  // Aggregate by date
+  const byDate = {};
+  recs.forEach(r => {
+    const cls = getCls(r.classId); if (!cls) return;
+    const absent = r.absentIds.length;
+    const present = cls.students.length - absent;
+    if (!byDate[r.date]) byDate[r.date] = { present:0, absent:0 };
+    byDate[r.date].present += Math.max(present, 0);
+    byDate[r.date].absent  += absent;
+  });
+  const dates = Object.keys(byDate).sort();
+
+  // Summary cards
+  const totPresent = dates.reduce((s,d)=>s+byDate[d].present, 0);
+  const totAbsent  = dates.reduce((s,d)=>s+byDate[d].absent,  0);
+  const totAll     = totPresent + totAbsent;
+  const pct        = totAll ? Math.round(totPresent / totAll * 100) : 0;
+  sumEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+      <div style="background:var(--white);border-radius:var(--rs);padding:10px 8px;text-align:center;box-shadow:var(--shadow)">
+        <div style="font-family:var(--fh);font-size:1.3rem;font-weight:900;color:var(--verde)">${totPresent}</div>
+        <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Presentes</div>
+      </div>
+      <div style="background:var(--white);border-radius:var(--rs);padding:10px 8px;text-align:center;box-shadow:var(--shadow)">
+        <div style="font-family:var(--fh);font-size:1.3rem;font-weight:900;color:var(--rojo)">${totAbsent}</div>
+        <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Ausentes</div>
+      </div>
+      <div style="background:var(--white);border-radius:var(--rs);padding:10px 8px;text-align:center;box-shadow:var(--shadow)">
+        <div style="font-family:var(--fh);font-size:1.3rem;font-weight:900;color:var(--azul)">${pct}%</div>
+        <div style="font-size:.62rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em">Asistencia</div>
+      </div>
+    </div>`;
+
+  // Draw chart after layout
+  requestAnimationFrame(() => drawAttChart(dates, byDate, area));
+}
+
+function drawAttChart(dates, byDate, area) {
+  area.innerHTML = '<canvas id="att-canvas"></canvas>';
+  const canvas = document.getElementById('att-canvas');
+  const W = area.offsetWidth || 320;
+  const H = 200;
+  const PR = window.devicePixelRatio || 1;
+  canvas.width  = W * PR;
+  canvas.height = H * PR;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(PR, PR);
+
+  const pad = { top:16, right:12, bottom:44, left:38 };
+  const cW = W - pad.left - pad.right;
+  const cH = H - pad.top - pad.bottom;
+
+  const maxVal = Math.max(...dates.map(d => byDate[d].present + byDate[d].absent), 1);
+  const yTicks = 4;
+
+  // Grid + Y labels
+  ctx.strokeStyle = '#E0E4EF';
+  ctx.lineWidth = 1;
+  ctx.fillStyle = '#999AAA';
+  ctx.font = `10px 'Nunito Sans', sans-serif`;
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= yTicks; i++) {
+    const y = pad.top + cH - (i / yTicks) * cH;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cW, y); ctx.stroke();
+    ctx.fillText(Math.round(i / yTicks * maxVal), pad.left - 4, y + 3.5);
+  }
+
+  // Bars
+  const n = dates.length;
+  const groupW = cW / Math.max(n, 1);
+  const barW = Math.min(Math.max(groupW * 0.55, 8), 28);
+
+  dates.forEach((date, i) => {
+    const x = pad.left + i * groupW + groupW / 2;
+    const d = byDate[date];
+    const presentH = (d.present / maxVal) * cH;
+    const absentH  = (d.absent  / maxVal) * cH;
+    const baseY    = pad.top + cH;
+
+    // Present bar (bottom, green)
+    if (presentH > 0) {
+      ctx.fillStyle = '#4BAD4E';
+      fillBar(ctx, x - barW/2, baseY - presentH, barW, presentH, 3, false, true);
+    }
+    // Absent bar (stacked on top, red)
+    if (absentH > 0) {
+      ctx.fillStyle = '#E8302A';
+      fillBar(ctx, x - barW/2, baseY - presentH - absentH, barW, absentH, 3, true, presentH <= 0);
+    }
+
+    // X date label
+    const [,m,dy] = date.split('-');
+    ctx.fillStyle = '#666677';
+    ctx.font = `bold 10px 'Nunito', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(`${parseInt(dy)}/${parseInt(m)}`, x, pad.top + cH + 14);
+  });
+}
+
+function fillBar(ctx, x, y, w, h, r, roundTop, roundBot) {
+  if (h <= 0) return;
+  const rt = roundTop ? Math.min(r, w/2, h) : 0;
+  const rb = roundBot ? Math.min(r, w/2, h) : 0;
+  ctx.beginPath();
+  ctx.moveTo(x + rt, y);
+  ctx.lineTo(x + w - rt, y);
+  if (rt) ctx.quadraticCurveTo(x+w, y, x+w, y+rt); else ctx.lineTo(x+w, y);
+  ctx.lineTo(x+w, y+h-rb);
+  if (rb) ctx.quadraticCurveTo(x+w, y+h, x+w-rb, y+h); else ctx.lineTo(x+w, y+h);
+  ctx.lineTo(x+rb, y+h);
+  if (rb) ctx.quadraticCurveTo(x, y+h, x, y+h-rb); else ctx.lineTo(x, y+h);
+  ctx.lineTo(x, y+rt);
+  if (rt) ctx.quadraticCurveTo(x, y, x+rt, y); else ctx.lineTo(x, y);
+  ctx.closePath();
+  ctx.fill();
 }
 
 /* ═══════════════════════════════════
