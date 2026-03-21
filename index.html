@@ -290,7 +290,7 @@
     </div>
     <div class="home-actions">
       <button class="btn bg" onclick="startFlow()">📋 Tomar Asistencia</button>
-      <button class="btn bp" onclick="openHistory()">📊 Ver Historial</button>
+      <button class="btn bp" onclick="openHistory()">📊 Ver historial y descargar datos</button>
       <button class="btn bp" onclick="openStats()" style="background:var(--morado)">📈 Estadísticas</button>
       <button class="btn bs" onclick="openManage()">⚙️ Gestionar Clases</button>
       <button class="btn bs" onclick="openSettings()">🎯 Eventos y Horarios</button>
@@ -304,7 +304,10 @@
       <button class="btn-icon" onclick="back()">←</button>
       <div><div class="tb-title">Seleccionar Clase</div><div class="tb-sub">¿Con qué grupo tomas asistencia?</div></div>
     </div>
-    <div class="content nb"><div class="card" id="att-cls-list"></div></div>
+    <div class="content nb">
+      <div class="card" id="att-cls-list"></div>
+      <button class="btn bp" style="margin-top:10px" onclick="openAddClass();stack.push('sel-cls')">➕ Agregar nueva clase</button>
+    </div>
   </div>
 
   <!-- ══ SESSION DETAILS ════════════════════════════ -->
