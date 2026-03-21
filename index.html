@@ -265,11 +265,11 @@
   <!-- ══ HOME ══════════════════════════════════════ -->
   <div id="screen-home" class="screen">
     <div class="rb"></div>
-    <div class="hero">
-      <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:2rem;line-height:1;margin:6px 0 2px;letter-spacing:-.01em">
-        <span style="color:#F9C200">Aula</span><span style="color:#ffffff">Presente</span>
+    <div class="hero" style="background:var(--white);color:var(--text);border-bottom:1px solid var(--border)">
+      <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:2rem;line-height:1;margin:6px 0 4px;letter-spacing:-.01em">
+        <span style="color:var(--rojo)">Aula</span><span style="color:var(--azul)">Presente</span>
       </div>
-      <p style="font-size:.8rem;opacity:.7;margin:6px 0 0;line-height:1.5;max-width:300px;margin-inline:auto">
+      <p style="font-size:.8rem;color:var(--text2);margin:4px 0 0;line-height:1.5;max-width:300px;margin-inline:auto">
         Registra asistencia escolar desde tu celular.<br>
         Selecciona un grupo → marca ausentes → guarda.
       </p>
@@ -546,26 +546,26 @@
         <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;line-height:1">
           <span style="color:var(--rojo)">Aula</span><span style="color:var(--azul)">Presente</span>
         </div>
-        <div class="tb-sub" id="profile-title-sub">Cuéntanos quién eres</div>
+        <div class="tb-sub" id="profile-title-sub">Un app de asistencia escolar</div>
       </div>
     </div>
     <div class="content nb">
 
       <!-- ── App hero welcome ── -->
-      <div style="background:linear-gradient(135deg,#1A2A4A 0%,#0D3559 100%);padding:28px 20px 24px;text-align:center;margin-bottom:0">
-        <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:2.2rem;line-height:1;margin-bottom:6px;letter-spacing:-.01em">
-          <span style="color:#F9C200">Aula</span><span style="color:#ffffff">Presente</span>
+      <div style="background:var(--white);padding:28px 20px 22px;text-align:center;border-bottom:1px solid var(--border)">
+        <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:2.4rem;line-height:1;margin-bottom:8px;letter-spacing:-.01em">
+          <span style="color:var(--rojo)">Aula</span><span style="color:var(--azul)">Presente</span>
         </div>
-        <div style="font-family:var(--fh);font-weight:800;font-size:1.1rem;color:white;margin-bottom:10px" id="profile-title">
+        <div style="font-family:var(--fh);font-weight:800;font-size:1.05rem;color:var(--text);margin-bottom:10px" id="profile-title">
           ¡Bienvenido/a! 👋
         </div>
-        <p style="font-size:.83rem;color:rgba(255,255,255,.78);line-height:1.65;max-width:310px;margin:0 auto 16px">
+        <p style="font-size:.84rem;color:var(--text2);line-height:1.65;max-width:310px;margin:0 auto 16px">
           AulaPresente te permite registrar la asistencia de tus estudiantes en segundos, directamente desde el celular — sin papeles, sin Excel, sin complicaciones.
         </p>
         <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap">
-          <span style="background:rgba(255,255,255,.15);color:white;font-family:var(--fh);font-weight:700;font-size:.75rem;padding:6px 13px;border-radius:20px">📋 Elige el grupo</span>
-          <span style="background:rgba(255,255,255,.15);color:white;font-family:var(--fh);font-weight:700;font-size:.75rem;padding:6px 13px;border-radius:20px">✔️ Marca ausentes</span>
-          <span style="background:rgba(255,255,255,.15);color:white;font-family:var(--fh);font-weight:700;font-size:.75rem;padding:6px 13px;border-radius:20px">💾 Guarda y exporta</span>
+          <span style="background:#EEF5FF;color:var(--azul);font-family:var(--fh);font-weight:700;font-size:.75rem;padding:6px 13px;border-radius:20px">📋 Elige el grupo</span>
+          <span style="background:#EEF8EE;color:var(--verde);font-family:var(--fh);font-weight:700;font-size:.75rem;padding:6px 13px;border-radius:20px">✔️ Marca ausentes</span>
+          <span style="background:#FFF3E0;color:var(--naranja);font-family:var(--fh);font-weight:700;font-size:.75rem;padding:6px 13px;border-radius:20px">💾 Guarda y exporta</span>
         </div>
       </div>
 
@@ -1421,7 +1421,7 @@ function toast(msg,type=''){
 function openProfile() {
   const hasProfile = S.profile && S.profile.nombre;
   document.getElementById('profile-title').textContent    = hasProfile ? '¡Hola de nuevo! 👋' : '¡Bienvenido/a! 👋';
-  document.getElementById('profile-title-sub').textContent = hasProfile ? 'Edita tu perfil' : 'Cuéntanos quién eres';
+  document.getElementById('profile-title-sub').textContent = 'Un app de asistencia escolar';
   document.getElementById('profile-back-btn').style.display = hasProfile ? 'flex' : 'none';
   document.getElementById('p-nombre').value    = S.profile.nombre || '';
   document.getElementById('p-id').value         = S.profile.idPersonal || '';
