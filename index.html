@@ -250,6 +250,7 @@
     .alert-card{background:var(--white);border-radius:var(--r);box-shadow:var(--shadow);
       padding:12px 14px;margin-bottom:8px;border-left:4px solid var(--rojo)}
     .alert-card.intermit{border-left-color:var(--naranja)}
+    .alert-card.monthly{border-left-color:var(--amarillo)}
     .alert-name{font-family:var(--fh);font-weight:800;font-size:.9rem}
     .alert-cls{font-size:.72rem;color:var(--text2);margin-top:2px}
     .alert-badge{border-radius:20px;padding:2px 9px;font-size:.7rem;font-family:var(--fh);font-weight:700;color:white;white-space:nowrap;flex-shrink:0}
@@ -947,6 +948,14 @@ function computeAlerts() {
       const absCnt = recent.filter(p => !p).length;
       if (absCnt >= 3) {
         alerts.push({ type: 'intermittent', student: stu, cls, count: absCnt, of: recent.length });
+        return;
+      }
+      // Monthly: 5+ absences in current calendar month
+      const monthPrefix = todayISO().slice(0, 7);
+      const monthRecs = recs.filter(r => r.date.startsWith(monthPrefix));
+      const monthAbs = monthRecs.filter(r => r.absentIds.includes(stu.id)).length;
+      if (monthAbs >= 5) {
+        alerts.push({ type: 'monthly', student: stu, cls, count: monthAbs });
       }
     });
   });
@@ -962,16 +971,17 @@ function renderAlerts() {
     '<div class="stitle" style="color:var(--rojo);margin:14px 0 8px">⚠️ Alertas de ausencias</div>' +
     alerts.slice(0, 5).map(a => {
       const name = [a.student.nombre1, a.student.apellido1].filter(Boolean).join(' ');
-      const isConsec = a.type === 'consecutive';
-      const badgeColor = isConsec ? 'var(--rojo)' : 'var(--naranja)';
-      const badgeText = isConsec ? a.count + ' seguidas' : a.count + '/' + a.of + ' sesiones';
-      return '<div class="alert-card' + (isConsec ? '' : ' intermit') + '">' +
+      const badgeColor = a.type === 'consecutive' ? 'var(--rojo)' : a.type === 'intermittent' ? 'var(--naranja)' : 'var(--amarillo)';
+      const badgeTextColor = a.type === 'monthly' ? '#7A5C00' : 'white';
+      const badgeText = a.type === 'consecutive' ? a.count + ' seguidas' : a.type === 'intermittent' ? a.count + '/' + a.of + ' sesiones' : a.count + ' este mes';
+      const cardClass = 'alert-card' + (a.type === 'consecutive' ? '' : a.type === 'intermittent' ? ' intermit' : ' monthly');
+      return '<div class="' + cardClass + '">' +
         '<div style="display:flex;align-items:center;gap:8px">' +
           '<div style="flex:1;min-width:0">' +
             '<div class="alert-name">' + esc(name) + '</div>' +
             '<div class="alert-cls">' + esc(cls_name(a.cls)) + '</div>' +
           '</div>' +
-          '<span class="alert-badge" style="background:' + badgeColor + '">' + badgeText + '</span>' +
+          '<span class="alert-badge" style="background:' + badgeColor + ';color:' + badgeTextColor + '">' + badgeText + '</span>' +
         '</div>' +
         '<button class="btn br btn-sm" style="margin-top:10px;width:100%" ' +
           'onclick="reportAlert(\'' + a.student.id + '\',\'' + a.cls.id + '\')">📢 Reportar al colegio</button>' +
