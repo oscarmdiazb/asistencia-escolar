@@ -246,6 +246,10 @@
     .leg-item{display:flex;align-items:center;gap:5px;font-family:var(--fh);font-weight:700;font-size:.75rem;color:var(--text2)}
     .leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
 
+    /* ── Screen hints ── */
+    .screen-hint{background:#EFF8FD;border-left:3px solid var(--azul);border-radius:8px;
+      padding:10px 14px;font-size:.82rem;color:var(--text2);margin-bottom:12px;line-height:1.55}
+
     /* ── Absence alert cards ── */
     .alert-card{background:var(--white);border-radius:var(--r);box-shadow:var(--shadow);
       padding:12px 14px;margin-bottom:8px;border-left:4px solid var(--rojo)}
@@ -316,6 +320,7 @@
       <div><div class="tb-title">Seleccionar Clase</div><div class="tb-sub">¿Con qué grupo tomas asistencia?</div></div>
     </div>
     <div class="content nb">
+      <p class="screen-hint">Elige el grupo con el que vas a tomar asistencia hoy. Si aún no tienes clases, crea una con el botón de abajo.</p>
       <div class="card" id="att-cls-list"></div>
       <button class="btn bp" style="margin-top:10px" onclick="openAddClass();stack.push('sel-cls')">➕ Agregar nueva clase</button>
     </div>
@@ -329,6 +334,7 @@
       <div><div class="tb-title" id="sess-title">Detalles de la sesión</div><div class="tb-sub">Fecha, evento y franja horaria</div></div>
     </div>
     <div class="content nb">
+      <p class="screen-hint">Selecciona la fecha y el tipo de clase. La franja horaria es opcional. Cuando estés listo, toca "Continuar" para pasar lista.</p>
 
       <!-- DATE -->
       <div class="stitle">📅 Fecha</div>
@@ -394,7 +400,10 @@
     <div class="rb"></div>
     <div class="att-hdr" id="att-hdr"></div>
     <div id="att-alert" class="alert-banner" style="display:none">⚠️ Ya existe un registro para esta sesión — será reemplazado al guardar.</div>
-    <div class="content" style="padding-top:8px"><div class="card" id="stu-list"></div></div>
+    <div class="content" style="padding-top:8px">
+      <p class="screen-hint" style="margin:8px 14px 8px">Toca el nombre de un estudiante para marcarlo como <strong style="color:var(--rojo)">AUSENTE</strong>. Los que no toques quedan como <strong style="color:var(--verde)">PRESENTES</strong>. Al terminar, toca Guardar.</p>
+      <div class="card" id="stu-list"></div>
+    </div>
     <div class="bottom-bar">
       <button class="btn bg" onclick="saveAttendance()">💾 Guardar Asistencia</button>
       <button class="btn-link" onclick="back()">Cancelar</button>
@@ -407,11 +416,12 @@
     <div class="topbar">
       <button class="btn-icon" onclick="back()">←</button>
       <div class="tb-title" style="flex:1">Mis Clases</div>
-      <button class="btn bs btn-sm" onclick="triggerImportClass()" title="Importar clase">📥 Importar</button>
       <button class="btn bp btn-sm" onclick="openAddClass()">+ Nueva</button>
     </div>
-    <input type="file" id="import-class-file" accept=".json" style="display:none" onchange="handleImportClass(event)">
-    <div class="content nb"><div class="card" id="manage-list"></div></div>
+    <div class="content nb">
+      <p class="screen-hint">Aquí creas y administras tus grupos. Toca una clase para editarla o agregar estudiantes. Usa el botón 📤 para compartir la lista con otro docente.</p>
+      <div class="card" id="manage-list"></div>
+    </div>
   </div>
 
   <!-- ══ EDIT / ADD CLASS ═══════════════════════════ -->
@@ -422,6 +432,7 @@
       <div class="tb-title" id="edit-cls-title">Nueva Clase</div>
     </div>
     <div class="content">
+      <p class="screen-hint">Llena el nombre del grupo, grado y aula. Luego agrega los estudiantes uno a uno o importa la lista completa desde un archivo CSV del SIMAT.</p>
       <div class="stitle">Información del grupo</div>
       <div class="card cb">
         <div class="fg">
@@ -526,6 +537,7 @@
     </div>
     <div class="content nb">
 
+      <p class="screen-hint">Personaliza los tipos de clase (Matemáticas, Español, etc.) y las franjas horarias que aparecen al tomar asistencia. Puedes agregar y eliminar los que necesites.</p>
       <!-- EVENTS -->
       <div class="stitle">🎯 Eventos / Tipos de Clase</div>
       <div class="card" id="events-list"></div>
@@ -567,7 +579,10 @@
         <option value="month">Este mes</option>
       </select>
     </div>
-    <div class="content nb" id="hist-content"></div>
+    <div class="content nb">
+      <p class="screen-hint">Todos tus registros guardados, ordenados por fecha. Filtra por clase o período. Usa "📤 Compartir" arriba para enviar los datos a tu coordinador/a.</p>
+      <div id="hist-content"></div>
+    </div>
   </div>
 
   <!-- ══ PROFILE ════════════════════════════════════ -->
@@ -660,6 +675,7 @@
       <select class="fsel" id="stats-cls-filter" onchange="renderStats()" style="flex:1"></select>
     </div>
     <div class="content nb" style="padding:14px">
+      <p class="screen-hint">Visualiza el porcentaje de asistencia por clase y los estudiantes con más ausencias. Filtra por grupo usando el menú de arriba.</p>
       <div id="stats-summary"></div>
       <div class="chart-card">
         <div class="chart-title">Estudiantes por fecha</div>
