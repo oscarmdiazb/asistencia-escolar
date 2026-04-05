@@ -246,6 +246,14 @@
     .leg-item{display:flex;align-items:center;gap:5px;font-family:var(--fh);font-weight:700;font-size:.75rem;color:var(--text2)}
     .leg-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
 
+    /* ── Absence alert cards ── */
+    .alert-card{background:var(--white);border-radius:var(--r);box-shadow:var(--shadow);
+      padding:12px 14px;margin-bottom:8px;border-left:4px solid var(--rojo)}
+    .alert-card.intermit{border-left-color:var(--naranja)}
+    .alert-name{font-family:var(--fh);font-weight:800;font-size:.9rem}
+    .alert-cls{font-size:.72rem;color:var(--text2);margin-top:2px}
+    .alert-badge{border-radius:20px;padding:2px 9px;font-size:.7rem;font-family:var(--fh);font-weight:700;color:white;white-space:nowrap;flex-shrink:0}
+
     /* ── Import instructions ── */
     .import-steps{background:#F0F7FF;border:1.5px solid #B8DCFA;border-radius:10px;padding:12px 14px;margin-top:10px;font-size:.8rem;line-height:1.6;color:var(--text)}
     .import-steps ol{padding-left:18px;margin:6px 0 0}
@@ -286,11 +294,13 @@
       </div>
     </div>
     <div id="backup-banner" style="display:none;background:#FFF3CD;border-left:4px solid var(--amarillo);padding:10px 16px;font-size:.82rem;font-weight:600;color:#7A5C00;">
-      📤 Tienes varios registros sin respaldar. <button onclick="exportAll();hideBanner()" style="background:none;border:none;color:var(--azul);font-weight:800;cursor:pointer;font-size:.82rem;">Exportar CSV ahora →</button>
+      📤 Tienes varios registros sin respaldar. <button onclick="shareData();hideBanner()" style="background:none;border:none;color:var(--azul);font-weight:800;cursor:pointer;font-size:.82rem;">Compartir / exportar →</button>
     </div>
+    <div id="alerts-section" style="display:none;padding:0 14px"></div>
     <div class="home-actions">
       <button class="btn bg" onclick="startFlow()">📋 Tomar Asistencia</button>
-      <button class="btn bp" onclick="openHistory()">📊 Ver historial y descargar datos</button>
+      <button class="btn bp" onclick="shareData()">📤 Compartir / exportar datos</button>
+      <button class="btn bp" onclick="openHistory()">📊 Ver historial</button>
       <button class="btn bp" onclick="openStats()" style="background:var(--morado)">📈 Estadísticas</button>
       <button class="btn bs" onclick="openManage()">⚙️ Gestionar Clases</button>
       <button class="btn bs" onclick="openSettings()">🎯 Eventos y Horarios</button>
@@ -544,7 +554,7 @@
     <div class="topbar">
       <button class="btn-icon" onclick="back()">←</button>
       <div class="tb-title" style="flex:1">Historial</div>
-      <button class="btn bp btn-sm" onclick="exportAll()">⬇️ CSV</button>
+      <button class="btn bp btn-sm" onclick="shareData()">📤 Compartir</button>
     </div>
     <div class="filter-bar">
       <select class="fsel" id="f-cls" onchange="renderHistory()" style="flex:1"></select>
@@ -907,6 +917,94 @@ function renderHome() {
   const sc = S.profile.saveCount || 0;
   const banner = document.getElementById('backup-banner');
   if (banner) banner.style.display = (sc > 0 && sc % 5 === 0) ? 'block' : 'none';
+
+  renderAlerts();
+}
+
+/* ═══════════════════════════════════
+   ABSENCE ALERTS
+═══════════════════════════════════ */
+function computeAlerts() {
+  const alerts = [];
+  S.classes.forEach(cls => {
+    const recs = S.records
+      .filter(r => r.classId === cls.id)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    if (recs.length < 3) return;
+    cls.students.forEach(stu => {
+      const presence = recs.map(r => !r.absentIds.includes(stu.id));
+      // Consecutive: last 3+ sessions all absent
+      let consec = 0;
+      for (let i = presence.length - 1; i >= 0; i--) {
+        if (!presence[i]) consec++; else break;
+      }
+      if (consec >= 3) {
+        alerts.push({ type: 'consecutive', student: stu, cls, count: consec });
+        return;
+      }
+      // Intermittent: 3+ absences in last 10 sessions (not all consecutive)
+      const recent = presence.slice(-10);
+      const absCnt = recent.filter(p => !p).length;
+      if (absCnt >= 3) {
+        alerts.push({ type: 'intermittent', student: stu, cls, count: absCnt, of: recent.length });
+      }
+    });
+  });
+  return alerts;
+}
+
+function renderAlerts() {
+  const sec = document.getElementById('alerts-section');
+  if (!sec) return;
+  const alerts = computeAlerts();
+  if (!alerts.length) { sec.style.display = 'none'; sec.innerHTML = ''; return; }
+  sec.innerHTML =
+    '<div class="stitle" style="color:var(--rojo);margin:14px 0 8px">⚠️ Alertas de ausencias</div>' +
+    alerts.slice(0, 5).map(a => {
+      const name = [a.student.nombre1, a.student.apellido1].filter(Boolean).join(' ');
+      const isConsec = a.type === 'consecutive';
+      const badgeColor = isConsec ? 'var(--rojo)' : 'var(--naranja)';
+      const badgeText = isConsec ? a.count + ' seguidas' : a.count + '/' + a.of + ' sesiones';
+      return '<div class="alert-card' + (isConsec ? '' : ' intermit') + '">' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<div style="flex:1;min-width:0">' +
+            '<div class="alert-name">' + esc(name) + '</div>' +
+            '<div class="alert-cls">' + esc(cls_name(a.cls)) + '</div>' +
+          '</div>' +
+          '<span class="alert-badge" style="background:' + badgeColor + '">' + badgeText + '</span>' +
+        '</div>' +
+        '<button class="btn br btn-sm" style="margin-top:10px;width:100%" ' +
+          'onclick="reportAlert(\'' + a.student.id + '\',\'' + a.cls.id + '\')">📢 Reportar al colegio</button>' +
+      '</div>';
+    }).join('') +
+    (alerts.length > 5 ? '<div style="text-align:center;font-size:.8rem;color:var(--text2);padding-bottom:6px">+' + (alerts.length - 5) + ' alertas más</div>' : '');
+  sec.style.display = 'block';
+}
+
+function cls_name(cls) {
+  return cls.name + (cls.grade ? ' · Grado ' + cls.grade : '');
+}
+
+async function reportAlert(stuId, clsId) {
+  const cls = getCls(clsId);
+  const stu = cls && cls.students.find(s => s.id === stuId);
+  if (!stu) return;
+  const name = [stu.nombre1, stu.nombre2, stu.apellido1, stu.apellido2].filter(Boolean).join(' ');
+  const msg = '⚠️ *Alerta de ausencias — AulaPresente*\n\n' +
+    'Estudiante: *' + name + '*\n' +
+    (stu.simat ? 'SIMAT: ' + stu.simat + '\n' : '') +
+    'Clase: ' + cls.name + '\n\n' +
+    'Por favor tome las acciones según el protocolo del colegio.\n\n' +
+    '_Reportado por: ' + (S.profile.nombre || '') + (S.profile.rol ? ' (' + S.profile.rol + ')' : '') + '_';
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Alerta de ausencias', text: msg }); return; }
+    catch(e) { if (e.name === 'AbortError') return; }
+  }
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(msg).then(() => toast('Mensaje copiado — pégalo en WhatsApp', 'ok'));
+  } else {
+    toast('Comparte con tu coordinador/a escolar', '');
+  }
 }
 
 /* ═══════════════════════════════════
@@ -1484,6 +1582,30 @@ function dl(content,filename){
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download=filename;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+/* ═══════════════════════════════════
+   SHARE / EXPORT DATA
+═══════════════════════════════════ */
+async function shareData() {
+  if (!S.records.length) { toast('Sin registros para compartir', 'err'); return; }
+  const csv = buildCSV(S.records);
+  const filename = 'asistencia_' + todayISO() + '.csv';
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const file = new File([blob], filename, { type: 'text/csv' });
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        title: 'Datos de asistencia — AulaPresente',
+        text: 'Asistencia escolar — ' + (S.profile.nombre || '') + ' — ' + (S.profile.institucion || ''),
+        files: [file]
+      });
+      toast('Datos compartidos', 'ok');
+      return;
+    } catch(e) { if (e.name === 'AbortError') return; }
+  }
+  dl(csv, filename);
+  toast('CSV descargado', 'ok');
 }
 
 function exportAll(){
