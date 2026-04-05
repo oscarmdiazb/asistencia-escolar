@@ -990,6 +990,7 @@ function renderAlerts() {
   if (!sec) return;
   const alerts = computeAlerts();
   if (!alerts.length) { sec.style.display = 'none'; sec.innerHTML = ''; return; }
+  alerts.forEach(a => { _alertCache[a.student.id + a.cls.id] = a; });
   sec.innerHTML =
     '<div class="stitle" style="color:var(--rojo);margin:14px 0 8px">⚠️ Alertas de ausencias</div>' +
     alerts.slice(0, 5).map(a => {
@@ -1018,17 +1019,52 @@ function cls_name(cls) {
   return cls.name + (cls.grade ? ' · Grado ' + cls.grade : '');
 }
 
+// Stores last computed alert details keyed by stuId+clsId for reportAlert lookup
+const _alertCache = {};
+
 async function reportAlert(stuId, clsId) {
   const cls = getCls(clsId);
   const stu = cls && cls.students.find(s => s.id === stuId);
   if (!stu) return;
-  const name = [stu.nombre1, stu.nombre2, stu.apellido1, stu.apellido2].filter(Boolean).join(' ');
-  const msg = '⚠️ *Alerta de ausencias — AulaPresente*\n\n' +
+
+  const cached = _alertCache[stuId + clsId] || {};
+  const name = [stu.apellido1, stu.apellido2, stu.nombre1, stu.nombre2].filter(Boolean).join(' ');
+
+  // Tipo de alerta
+  const tipoMap = { consecutive: 'consecutivas', intermittent: 'intermitentes (patrón recurrente)', monthly: 'en el mes' };
+  const tipo = cached.type ? tipoMap[cached.type] || cached.type : '';
+  const count = cached.count || '';
+  const tipoLine = tipo ? 'Tipo: *' + count + ' faltas ' + tipo + '*\n' : '';
+
+  // Fechas de ausencia
+  const absRecs = S.records
+    .filter(r => r.classId === clsId && r.absentIds.includes(stuId))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const fechas = absRecs.map(r => {
+    const [, mo, dy] = r.date.split('-');
+    return dy + '/' + mo;
+  }).join(', ');
+  const fechasLine = fechas ? 'Fechas de ausencia: ' + fechas + '\n' : '';
+
+  // Clase con grado
+  const claseLine = cls.name + (cls.grade ? ' · Grado ' + cls.grade : '') + (cls.aula ? ' · Aula ' + cls.aula : '');
+
+  // Fecha del reporte
+  const hoy = todayISO();
+  const [y, mo, dy] = hoy.split('-');
+  const fechaReporte = dy + '/' + mo + '/' + y;
+
+  const msg =
+    '⚠️ *Alerta de ausencias — AulaPresente*\n\n' +
+    tipoLine +
     'Estudiante: *' + name + '*\n' +
     (stu.simat ? 'SIMAT: ' + stu.simat + '\n' : '') +
-    'Clase: ' + cls.name + '\n\n' +
-    'Por favor tome las acciones según el protocolo del colegio.\n\n' +
-    '_Reportado por: ' + (S.profile.nombre || '') + (S.profile.rol ? ' (' + S.profile.rol + ')' : '') + '_';
+    'Clase: ' + claseLine + '\n' +
+    fechasLine +
+    '\nPor favor tome las acciones según el protocolo del colegio.\n\n' +
+    'Reportado el ' + fechaReporte + '\n' +
+    'Por: ' + (S.profile.nombre || '') + (S.profile.rol ? ' (' + S.profile.rol + ')' : '');
+
   if (navigator.share) {
     try { await navigator.share({ title: 'Alerta de ausencias', text: msg }); return; }
     catch(e) { if (e.name === 'AbortError') return; }
