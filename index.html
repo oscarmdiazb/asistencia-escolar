@@ -407,8 +407,10 @@
     <div class="topbar">
       <button class="btn-icon" onclick="back()">←</button>
       <div class="tb-title" style="flex:1">Mis Clases</div>
+      <button class="btn bs btn-sm" onclick="triggerImportClass()" title="Importar clase">📥 Importar</button>
       <button class="btn bp btn-sm" onclick="openAddClass()">+ Nueva</button>
     </div>
+    <input type="file" id="import-class-file" accept=".json" style="display:none" onchange="handleImportClass(event)">
     <div class="content nb"><div class="card" id="manage-list"></div></div>
   </div>
 
@@ -1266,6 +1268,7 @@ function renderManage() {
       </div>
       <div class="cbadge">${cls.students.length} est.</div>
       <div class="cbadge" style="background:#EEF5FF;color:var(--azul)">${rc} reg.</div>
+      <button class="cdel" onclick="event.stopPropagation();exportClass('${cls.id}')" title="Compartir clase">📤</button>
       <button class="cdel" onclick="event.stopPropagation();confirmDelCls('${cls.id}')">🗑</button>
     </div>`;
   }).join('');
@@ -1628,6 +1631,96 @@ function exportRec(id){
   const cls=getCls(rec.classId);
   dl(buildCSV([rec]),'asistencia_'+(cls?cls.name.replace(/[^a-zA-Z0-9]/g,'_'):'clase')+'_'+rec.date+'.csv');
   toast('Exportado','ok');
+}
+
+/* ═══════════════════════════════════
+   EXPORT / IMPORT CLASS
+═══════════════════════════════════ */
+async function exportClass(id) {
+  const cls = getCls(id); if (!cls) return;
+  const payload = {
+    aulaPresente: 'clase_v1',
+    exportedAt: new Date().toISOString(),
+    exportedBy: S.profile.nombre || '',
+    class: {
+      id: cls.id,
+      name: cls.name,
+      school: cls.school || '',
+      grade: cls.grade || '',
+      aula: cls.aula || '',
+      students: cls.students.map(s => ({
+        simat: s.simat || '', apellido1: s.apellido1 || '', apellido2: s.apellido2 || '',
+        nombre1: s.nombre1 || '', nombre2: s.nombre2 || ''
+      }))
+    }
+  };
+  const json = JSON.stringify(payload, null, 2);
+  const filename = 'clase_' + cls.name.replace(/[^a-zA-Z0-9]/g, '_') + '.json';
+  const blob = new Blob([json], { type: 'application/json' });
+  const file = new File([blob], filename, { type: 'application/json' });
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        title: 'Clase: ' + cls.name + ' — AulaPresente',
+        text: cls.students.length + ' estudiantes · ' + (cls.school || ''),
+        files: [file]
+      });
+      toast('Clase compartida', 'ok'); return;
+    } catch(e) { if (e.name === 'AbortError') return; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast('Archivo de clase descargado', 'ok');
+}
+
+function triggerImportClass() {
+  document.getElementById('import-class-file').click();
+}
+
+function handleImportClass(event) {
+  const file = event.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const payload = JSON.parse(e.target.result);
+      if (!payload.aulaPresente || !payload.class) { toast('Archivo inválido', 'err'); return; }
+      const data = payload.class;
+      if (!data.name || !Array.isArray(data.students)) { toast('Archivo inválido', 'err'); return; }
+
+      // Match existing class by original id, or by name+school
+      const existingIdx = S.classes.findIndex(c =>
+        c.id === data.id || (c.name === data.name && (c.school || '') === (data.school || ''))
+      );
+      if (existingIdx >= 0) {
+        // Update: merge students (add new SIMATs, skip duplicates)
+        const existing = S.classes[existingIdx];
+        let added = 0;
+        data.students.forEach(s => {
+          if (!s.simat || existing.students.some(e => e.simat === s.simat)) return;
+          existing.students.push({ id: genId('stu'), ...s });
+          added++;
+        });
+        existing.name = data.name;
+        if (data.school) existing.school = data.school;
+        if (data.grade)  existing.grade  = data.grade;
+        if (data.aula)   existing.aula   = data.aula;
+        save(); renderManage();
+        toast('Clase actualizada · ' + added + ' estudiante(s) nuevo(s)', 'ok');
+      } else {
+        // New class
+        S.classes.push({
+          id: data.id || genId('cls'),
+          name: data.name, school: data.school || '', grade: data.grade || '', aula: data.aula || '',
+          students: data.students.map(s => ({ id: genId('stu'), ...s }))
+        });
+        save(); renderManage();
+        toast('Clase importada · ' + data.students.length + ' estudiantes', 'ok');
+      }
+    } catch(err) { toast('Error al leer el archivo', 'err'); }
+    event.target.value = '';
+  };
+  reader.readAsText(file);
 }
 
 /* ═══════════════════════════════════
