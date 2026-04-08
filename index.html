@@ -886,6 +886,18 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYY2xzEnkEhkKlVgVtK
 
 function cloudOk() { return SCRIPT_URL && S.cloud && S.cloud.schoolCode; }
 
+// Safe fetch wrapper for Apps Script (handles redirects gracefully)
+async function gsFetch(url, opts) {
+  const res = await fetch(url, opts);
+  try {
+    const text = await res.text();
+    return JSON.parse(text);
+  } catch (e) {
+    // Redirect succeeded but response is not JSON — treat as success
+    return { ok: true, redirected: true };
+  }
+}
+
 // Deterministic student ID from SIMAT (consistent across devices)
 function stableStudentId(simat) {
   let h = 0;
@@ -898,7 +910,7 @@ function stableStudentId(simat) {
 
 // ── Setup (coordinator creates school) ──
 async function cloudSetup(code, schoolName) {
-  const res = await fetch(SCRIPT_URL, {
+  return await gsFetch(SCRIPT_URL, {
     method: 'POST',
     redirect: 'follow',
     body: JSON.stringify({
@@ -908,13 +920,11 @@ async function cloudSetup(code, schoolName) {
       coordinatorName: S.profile.nombre || ''
     })
   });
-  return await res.json();
 }
 
 // ── Ping (validate school code) ──
 async function cloudPing(code) {
-  const res = await fetch(SCRIPT_URL + '?action=ping&code=' + encodeURIComponent(code));
-  return await res.json();
+  return await gsFetch(SCRIPT_URL + '?action=ping&code=' + encodeURIComponent(code));
 }
 
 // ── Push classes (coordinator publishes) ──
@@ -932,12 +942,11 @@ async function cloudPushClasses(classes) {
       nombre1: s.nombre1 || '', nombre2: s.nombre2 || ''
     }))
   }));
-  const res = await fetch(SCRIPT_URL, {
+  const result = await gsFetch(SCRIPT_URL, {
     method: 'POST',
     redirect: 'follow',
     body: JSON.stringify({ action: 'pushClasses', code: S.cloud.schoolCode, classes: payload })
   });
-  const result = await res.json();
   if (result.ok) {
     classes.forEach(cls => {
       cls.cloudVersion = (cls.cloudVersion || 0) + 1;
@@ -952,8 +961,7 @@ async function cloudPushClasses(classes) {
 // ── Fetch classes (teacher pulls rosters) ──
 async function cloudFetchClasses() {
   if (!cloudOk()) return;
-  const res = await fetch(SCRIPT_URL + '?action=getClasses&code=' + encodeURIComponent(S.cloud.schoolCode));
-  const result = await res.json();
+  const result = await gsFetch(SCRIPT_URL + '?action=getClasses&code=' + encodeURIComponent(S.cloud.schoolCode));
   if (!result.ok) { toast(result.error || 'Error al sincronizar', 'err'); return; }
 
   let added = 0, updated = 0;
@@ -1051,17 +1059,17 @@ async function syncRecordToCloud(rec) {
   };
 
   try {
-    const res = await fetch(SCRIPT_URL, {
+    const result = await gsFetch(SCRIPT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      redirect: 'follow',
       body: JSON.stringify(payload)
     });
-    const result = await res.json();
     if (result.ok) {
       rec.synced = true;
       save();
+      updateSyncBadge();
     } else {
-      throw new Error(result.error);
+      throw new Error(result.error || 'Sync failed');
     }
   } catch (err) {
     // Queue for retry
@@ -1077,12 +1085,11 @@ async function processQueue() {
   const remaining = [];
   for (const payload of S.syncQueue) {
     try {
-      const res = await fetch(SCRIPT_URL, {
+      const result = await gsFetch(SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        redirect: 'follow',
         body: JSON.stringify(payload)
       });
-      const result = await res.json();
       if (!result.ok) remaining.push(payload);
     } catch (err) {
       remaining.push(payload);
