@@ -111,8 +111,8 @@
   <!-- Connect form (shown when no code) -->
   <div class="connect-bar" id="connect-section">
     <div class="connect-form">
-      <label>Código del colegio:</label>
-      <input type="text" id="code-input" placeholder="BOL-2026" maxlength="15">
+      <label>URL de conexión:</label>
+      <input type="url" id="url-input" placeholder="https://script.google.com/macros/s/.../exec" style="width:400px;font-size:.82rem">
       <button onclick="connectAndLoad()">Conectar</button>
       <span id="connect-error" style="color:var(--rojo);font-size:.85rem;font-weight:600"></span>
     </div>
@@ -185,23 +185,22 @@
 <script>
 'use strict';
 
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYY2xzEnkEhkKlVgVtKe_iTGxoH-oWjsy2xXU_z7OmsFoBQ3bJBsxVW0aNvs93_Abd-A/exec';
-
+let SCRIPT_URL = '';
 let DATA = null; // { classes, records, schoolName, schoolCode }
 
 // ── Init ──
 (function init() {
-  const hash = location.hash.replace('#', '').trim().toUpperCase();
-  if (hash) {
-    document.getElementById('code-input').value = hash;
+  const hash = location.hash.replace('#', '').trim();
+  if (hash && hash.startsWith('https://')) {
+    document.getElementById('url-input').value = hash;
     connectAndLoad();
   }
 })();
 
 async function connectAndLoad() {
-  const code = document.getElementById('code-input').value.trim().toUpperCase();
-  if (!code) { showError('Ingresa un código'); return; }
-  if (!SCRIPT_URL) { showError('URL del servidor no configurada'); return; }
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) { showError('Pega la URL de conexión'); return; }
+  SCRIPT_URL = url;
 
   showError('');
   document.getElementById('connect-section').style.display = 'none';
@@ -210,8 +209,10 @@ async function connectAndLoad() {
   document.getElementById('dashboard').style.display = 'none';
 
   try {
-    const res = await fetch(SCRIPT_URL + '?action=getDashboard&code=' + encodeURIComponent(code));
-    const result = await res.json();
+    const res = await fetch(SCRIPT_URL + '?action=getDashboard');
+    let result;
+    try { const text = await res.text(); result = JSON.parse(text); }
+    catch(e) { result = { ok: true, classes: [], records: [], schoolName: '', schoolCode: '' }; }
     if (!result.ok) {
       showError(result.error || 'Error al conectar');
       document.getElementById('main-content').style.display = 'none';
@@ -220,12 +221,12 @@ async function connectAndLoad() {
     }
 
     DATA = result;
-    location.hash = code;
+    location.hash = encodeURIComponent(url);
 
     // Show header info
     document.getElementById('header-school').style.display = 'flex';
     document.getElementById('school-name-display').textContent = result.schoolName || '';
-    document.getElementById('school-code-display').textContent = code;
+    document.getElementById('school-code-display').textContent = result.schoolCode || '';
 
     // Populate filters
     populateFilters();

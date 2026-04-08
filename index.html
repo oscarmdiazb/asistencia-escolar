@@ -716,19 +716,27 @@
       <!-- Before setup -->
       <div id="pub-setup">
         <div class="card cb">
-          <div class="stitle" style="margin-top:0">¿Cómo funciona?</div>
+          <div class="stitle" style="margin-top:0">Configuración inicial</div>
           <p style="font-size:.85rem;color:var(--text2);line-height:1.5;margin-bottom:12px">
-            Al publicar, tus clases se suben a una hoja de Google Sheets.
-            Los docentes ingresan un <strong>código de colegio</strong> para descargar las listas.
-            Cuando tomen asistencia, los registros se envían automáticamente a la misma hoja.
+            Para conectar tu colegio necesitas una <strong>Google Sheet</strong> con el script de AulaPresente.
+            Si aún no la tienes, pide el enlace de la plantilla al administrador del sistema.
           </p>
-          <div class="fg" style="margin-bottom:10px">
-            <label class="fl">Código del colegio</label>
-            <input class="fi" type="text" id="pub-code" placeholder="Ej: BOL-2026" maxlength="15" autocomplete="off"
-              style="text-transform:uppercase;font-family:var(--fh);font-weight:800;font-size:1.1rem;letter-spacing:.05em">
-            <div style="font-size:.72rem;color:var(--text2);margin-top:4px">Código corto que compartirás con los docentes por WhatsApp</div>
+          <div style="background:var(--bg);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:var(--text2);line-height:1.6">
+            <strong style="color:var(--text)">Pasos:</strong><br>
+            1. Abre la plantilla de Google Sheet<br>
+            2. File → "Hacer una copia" (queda en tu Drive)<br>
+            3. Llena la pestaña Config (nombre y código del colegio)<br>
+            4. Pega las listas de estudiantes en la pestaña Clases<br>
+            5. Extensions → Apps Script → Deploy → Web app → Anyone<br>
+            6. Copia la URL y pégala aquí abajo
           </div>
-          <button class="btn bg" onclick="doCloudSetup()">🚀 Crear conexión y publicar clases</button>
+          <div class="fg" style="margin-bottom:10px">
+            <label class="fl">URL del Script (Web app)</label>
+            <input class="fi" type="url" id="pub-script-url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off"
+              style="font-size:.82rem">
+            <div style="font-size:.72rem;color:var(--text2);margin-top:4px">La URL que obtuviste al desplegar el Web app</div>
+          </div>
+          <button class="btn bg" onclick="doCloudSetup()">🔗 Conectar</button>
         </div>
       </div>
       <!-- After setup -->
@@ -801,12 +809,13 @@
       <div id="conn-setup">
         <div class="card cb">
           <p style="font-size:.85rem;color:var(--text2);line-height:1.5;margin-bottom:12px">
-            Si tu coordinador/a te compartió un <strong>código de colegio</strong>, ingrésalo aquí para descargar las listas de estudiantes automáticamente.
+            Si tu coordinador/a te compartió un <strong>enlace de conexión</strong>, pégalo aquí para descargar las listas de estudiantes automáticamente.
           </p>
           <div class="fg" style="margin-bottom:10px">
-            <label class="fl">Código del colegio</label>
-            <input class="fi" type="text" id="conn-code" placeholder="Ej: BOL-2026" maxlength="15" autocomplete="off"
-              style="text-transform:uppercase;font-family:var(--fh);font-weight:800;font-size:1.1rem;letter-spacing:.05em">
+            <label class="fl">URL de conexión</label>
+            <input class="fi" type="url" id="conn-url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off"
+              style="font-size:.82rem">
+            <div style="font-size:.72rem;color:var(--text2);margin-top:4px">El enlace que te compartió tu coordinador/a</div>
           </div>
           <button class="btn bg" onclick="doConnect()">🔗 Conectar</button>
         </div>
@@ -912,9 +921,10 @@ function save() {
 /* ═══════════════════════════════════
    CLOUD SYNC ENGINE
 ═══════════════════════════════════ */
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYY2xzEnkEhkKlVgVtKe_iTGxoH-oWjsy2xXU_z7OmsFoBQ3bJBsxVW0aNvs93_Abd-A/exec';
+// Each school has its own Script URL (entered by coordinator during setup)
+function getScriptUrl() { return (S.cloud && S.cloud.scriptUrl) || ''; }
 
-function cloudOk() { return SCRIPT_URL && S.cloud && S.cloud.schoolCode; }
+function cloudOk() { return getScriptUrl() && S.cloud && S.cloud.schoolCode; }
 
 // Safe fetch wrapper for Apps Script (handles redirects gracefully)
 async function gsFetch(url, opts) {
@@ -938,23 +948,9 @@ function stableStudentId(simat) {
   return 'cs_' + Math.abs(h).toString(36);
 }
 
-// ── Setup (coordinator creates school) ──
-async function cloudSetup(code, schoolName) {
-  return await gsFetch(SCRIPT_URL, {
-    method: 'POST',
-    redirect: 'follow',
-    body: JSON.stringify({
-      action: 'setup',
-      code: code,
-      schoolName: schoolName,
-      coordinatorName: S.profile.nombre || ''
-    })
-  });
-}
-
-// ── Ping (validate school code) ──
-async function cloudPing(code) {
-  return await gsFetch(SCRIPT_URL + '?action=ping&code=' + encodeURIComponent(code));
+// ── Ping (validate connection) ──
+async function cloudPing() {
+  return await gsFetch(getScriptUrl() + '?action=ping');
 }
 
 // ── Push classes (coordinator publishes) ──
@@ -972,7 +968,7 @@ async function cloudPushClasses(classes) {
       nombre1: s.nombre1 || '', nombre2: s.nombre2 || ''
     }))
   }));
-  const result = await gsFetch(SCRIPT_URL, {
+  const result = await gsFetch(getScriptUrl(), {
     method: 'POST',
     redirect: 'follow',
     body: JSON.stringify({ action: 'pushClasses', code: S.cloud.schoolCode, classes: payload })
@@ -991,7 +987,7 @@ async function cloudPushClasses(classes) {
 // ── Fetch classes (teacher pulls rosters) ──
 async function cloudFetchClasses() {
   if (!cloudOk()) return;
-  const result = await gsFetch(SCRIPT_URL + '?action=getClasses&code=' + encodeURIComponent(S.cloud.schoolCode));
+  const result = await gsFetch(getScriptUrl() + '?action=getClasses&code=' + encodeURIComponent(S.cloud.schoolCode));
   if (!result.ok) { toast(result.error || 'Error al sincronizar', 'err'); return; }
 
   let added = 0, updated = 0;
@@ -1089,7 +1085,7 @@ async function syncRecordToCloud(rec) {
   };
 
   try {
-    const result = await gsFetch(SCRIPT_URL, {
+    const result = await gsFetch(getScriptUrl(), {
       method: 'POST',
       redirect: 'follow',
       body: JSON.stringify(payload)
@@ -1111,11 +1107,11 @@ async function syncRecordToCloud(rec) {
 
 // ── Process offline queue ──
 async function processQueue() {
-  if (!SCRIPT_URL || !S.syncQueue.length) return;
+  if (!getScriptUrl() || !S.syncQueue.length) return;
   const remaining = [];
   for (const payload of S.syncQueue) {
     try {
-      const result = await gsFetch(SCRIPT_URL, {
+      const result = await gsFetch(getScriptUrl(), {
         method: 'POST',
         redirect: 'follow',
         body: JSON.stringify(payload)
@@ -1317,7 +1313,7 @@ function renderHome() {
   // Cloud buttons on home
   const cbEl = document.getElementById('cloud-buttons');
   if (cbEl) {
-    if (!SCRIPT_URL) {
+    if (!getScriptUrl()) {
       cbEl.innerHTML = '';
     } else if (S.cloud.role === 'coordinator') {
       cbEl.innerHTML = '<button class="btn bn" onclick="openPublish()" style="margin-top:2px">☁️ Publicar al Colegio</button>';
@@ -2195,16 +2191,12 @@ function handleImportClass(event) {
    CLOUD: COORDINATOR FLOWS
 ═══════════════════════════════════ */
 function openPublish() {
-  const hasSetup = S.cloud.role === 'coordinator' && S.cloud.schoolCode;
+  const hasSetup = S.cloud.role === 'coordinator' && S.cloud.scriptUrl;
   document.getElementById('pub-setup').style.display = hasSetup ? 'none' : 'block';
   document.getElementById('pub-connected').style.display = hasSetup ? 'block' : 'none';
 
   if (!hasSetup) {
-    // Auto-suggest code from institution name
-    const inst = (S.profile.institucion || '').toUpperCase().replace(/[^A-Z]/g, '');
-    const prefix = inst.slice(0, 3) || 'COL';
-    const year = new Date().getFullYear();
-    document.getElementById('pub-code').value = prefix + '-' + year;
+    document.getElementById('pub-script-url').value = S.cloud.scriptUrl || '';
   } else {
     renderPublishConnected();
   }
@@ -2232,37 +2224,34 @@ function renderPublishConnected() {
 }
 
 async function doCloudSetup() {
-  const code = document.getElementById('pub-code').value.trim().toUpperCase();
-  if (!code || code.length < 3) { toast('Código muy corto (mín. 3 caracteres)', 'err'); return; }
-  if (!SCRIPT_URL) { toast('URL del servidor no configurada', 'err'); return; }
+  const url = document.getElementById('pub-script-url').value.trim();
+  if (!url || !url.startsWith('https://script.google.com/')) {
+    toast('Pega la URL del Web app (empieza con https://script.google.com/...)', 'err'); return;
+  }
 
-  toast('Creando conexión...', '');
+  // Store URL temporarily to use gsFetch
+  S.cloud.scriptUrl = url;
+
+  toast('Verificando conexión...', '');
   try {
-    const result = await cloudSetup(code, S.profile.institucion || '');
-    if (!result.ok) { toast(result.error || 'Error al crear', 'err'); return; }
-
-    S.cloud.schoolCode = code;
-    S.cloud.schoolName = result.schoolName || S.profile.institucion || '';
-    S.cloud.role = 'coordinator';
-    S.cloud.spreadsheetUrl = result.spreadsheetUrl || '';
-    save();
-
-    // Publish classes immediately
-    if (S.classes.length) {
-      const pubResult = await cloudPushClasses(S.classes);
-      if (pubResult && pubResult.ok) {
-        toast('Conexión creada · ' + pubResult.classesWritten + ' clase(s) publicada(s)', 'ok');
-      } else {
-        toast('Conexión creada, pero error al publicar clases', 'err');
-      }
-    } else {
-      toast('Conexión creada. Agrega clases y publícalas.', 'ok');
+    const result = await gsFetch(url + '?action=ping');
+    if (!result.ok) {
+      S.cloud.scriptUrl = '';
+      toast(result.error || 'No se pudo conectar. Verifica que el script esté desplegado.', 'err');
+      return;
     }
 
+    S.cloud.schoolCode = result.schoolCode || '';
+    S.cloud.schoolName = result.schoolName || '';
+    S.cloud.role = 'coordinator';
+    save();
+
+    toast('Conectado a ' + (result.schoolName || result.schoolCode) + ' ☁️', 'ok');
     document.getElementById('pub-setup').style.display = 'none';
     document.getElementById('pub-connected').style.display = 'block';
     renderPublishConnected();
   } catch (err) {
+    S.cloud.scriptUrl = '';
     toast('Error de conexión: ' + err.message, 'err');
   }
 }
@@ -2286,8 +2275,9 @@ async function doPublishClasses() {
 }
 
 async function shareSchoolCode() {
-  const code = S.cloud.schoolCode;
-  const text = '📋 *AulaPresente*\n\nUsa este código para conectarte al colegio:\n\n🔑 *' + code + '*\n\n1. Abre AulaPresente: https://oscarmdiazb.github.io/asistencia-escolar/\n2. Toca "Conectar a un colegio"\n3. Ingresa el código: ' + code;
+  const url = S.cloud.scriptUrl || '';
+  const name = S.cloud.schoolName || S.cloud.schoolCode || '';
+  const text = '📋 *AulaPresente — ' + name + '*\n\nConéctate para descargar las listas de clase:\n\n1. Abre AulaPresente:\nhttps://oscarmdiazb.github.io/asistencia-escolar/\n\n2. Toca "Soy docente — Conectar a un colegio"\n\n3. Pega este enlace de conexión:\n' + url;
 
   if (navigator.share) {
     try {
@@ -2305,16 +2295,20 @@ async function shareSchoolCode() {
 }
 
 function openSheetLink() {
-  if (S.cloud.spreadsheetUrl) {
-    window.open(S.cloud.spreadsheetUrl, '_blank');
+  // The Sheet is in the coordinator's Drive — open Apps Script URL which links to the Sheet
+  const scriptUrl = getScriptUrl();
+  if (scriptUrl) {
+    // Extract the script ID to build a link to the Sheet
+    toast('Busca la hoja "AulaPresente" en tu Google Drive', 'ok');
+    window.open('https://drive.google.com', '_blank');
   } else {
-    toast('URL de la hoja no disponible. Busca "AulaPresente" en tu Google Drive.', 'err');
+    toast('Configura la conexión primero', 'err');
   }
 }
 
 function openDashboardLink() {
-  const code = S.cloud.schoolCode || '';
-  const url = 'https://oscarmdiazb.github.io/asistencia-escolar/dashboard.html#' + code;
+  const scriptUrl = getScriptUrl();
+  const url = 'https://oscarmdiazb.github.io/asistencia-escolar/dashboard.html#' + encodeURIComponent(scriptUrl);
   window.open(url, '_blank');
 }
 
@@ -2337,29 +2331,35 @@ function openConnect() {
 }
 
 async function doConnect() {
-  const code = document.getElementById('conn-code').value.trim().toUpperCase();
-  if (!code) { toast('Ingresa el código del colegio', 'err'); return; }
-  if (!SCRIPT_URL) { toast('URL del servidor no configurada', 'err'); return; }
+  const url = document.getElementById('conn-url').value.trim();
+  if (!url || !url.startsWith('https://script.google.com/')) {
+    toast('Pega el enlace que te compartió tu coordinador/a', 'err'); return;
+  }
 
-  toast('Verificando código...', '');
+  S.cloud.scriptUrl = url;
+  toast('Verificando conexión...', '');
   try {
-    const result = await cloudPing(code);
-    if (!result.ok) { toast(result.error || 'Código no encontrado', 'err'); return; }
+    const result = await gsFetch(url + '?action=ping');
+    if (!result.ok) {
+      S.cloud.scriptUrl = '';
+      toast(result.error || 'No se pudo conectar', 'err'); return;
+    }
 
-    S.cloud.schoolCode = code;
+    S.cloud.schoolCode = result.schoolCode || '';
     S.cloud.schoolName = result.schoolName || '';
     S.cloud.role = 'teacher';
     save();
 
-    toast('Conectado a ' + (result.schoolName || code) + '. Descargando clases...', 'ok');
+    toast('Conectado a ' + (result.schoolName || result.schoolCode) + '. Descargando clases...', 'ok');
     await cloudFetchClasses();
 
     document.getElementById('conn-setup').style.display = 'none';
     document.getElementById('conn-connected').style.display = 'block';
     document.getElementById('conn-school-name').textContent = S.cloud.schoolName || '';
-    document.getElementById('conn-code-display').textContent = code;
+    document.getElementById('conn-code-display').textContent = S.cloud.schoolCode;
     document.getElementById('conn-last-sync').textContent = 'Última sincronización: ' + new Date().toLocaleString('es-CO');
   } catch (err) {
+    S.cloud.scriptUrl = '';
     toast('Error de conexión: ' + err.message, 'err');
   }
 }
