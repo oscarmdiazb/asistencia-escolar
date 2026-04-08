@@ -139,7 +139,9 @@
       <!-- Filters -->
       <div class="filters">
         <select id="filter-class" onchange="renderDashboard()"><option value="">Todas las clases</option></select>
+        <select id="filter-event" onchange="renderDashboard()"><option value="">Todos los eventos</option></select>
         <select id="filter-teacher" onchange="renderDashboard()"><option value="">Todos los docentes</option></select>
+        <select id="filter-student" onchange="renderDashboard()"><option value="">Todos los estudiantes</option></select>
         <input type="date" id="filter-from" onchange="renderDashboard()">
         <input type="date" id="filter-to" onchange="renderDashboard()">
         <button style="font-family:var(--fh);font-weight:700;background:var(--bg);border:2px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:.82rem" onclick="clearFilters()">Limpiar filtros</button>
@@ -253,7 +255,9 @@ function showError(msg) {
 
 function clearFilters() {
   document.getElementById('filter-class').value = '';
+  document.getElementById('filter-event').value = '';
   document.getElementById('filter-teacher').value = '';
+  document.getElementById('filter-student').value = '';
   document.getElementById('filter-from').value = '';
   document.getElementById('filter-to').value = '';
   renderDashboard();
@@ -267,11 +271,30 @@ function populateFilters() {
     '<option value="">Todas las clases</option>' +
     classNames.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
 
+  // Events
+  const events = [...new Set(DATA.records.map(r => r.eventName).filter(Boolean))].sort();
+  document.getElementById('filter-event').innerHTML =
+    '<option value="">Todos los eventos</option>' +
+    events.map(e => `<option value="${esc(e)}">${esc(e)}</option>`).join('');
+
   // Teachers
   const teachers = [...new Set(DATA.records.map(r => r.facilitador).filter(Boolean))].sort();
   document.getElementById('filter-teacher').innerHTML =
     '<option value="">Todos los docentes</option>' +
     teachers.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+
+  // Students
+  const stuMap = {};
+  DATA.records.forEach(r => {
+    if (!r.simat) return;
+    if (!stuMap[r.simat]) {
+      stuMap[r.simat] = [r.apellido1, r.apellido2, r.nombre1].filter(Boolean).join(' ') + ' (' + r.simat + ')';
+    }
+  });
+  const students = Object.entries(stuMap).sort((a, b) => a[1].localeCompare(b[1]));
+  document.getElementById('filter-student').innerHTML =
+    '<option value="">Todos los estudiantes</option>' +
+    students.map(([simat, label]) => `<option value="${esc(simat)}">${esc(label)}</option>`).join('');
 }
 
 function getFilteredRecords() {
@@ -279,12 +302,16 @@ function getFilteredRecords() {
   let recs = DATA.records;
 
   const fc = document.getElementById('filter-class').value;
+  const fe = document.getElementById('filter-event').value;
   const ft = document.getElementById('filter-teacher').value;
+  const fs = document.getElementById('filter-student').value;
   const from = document.getElementById('filter-from').value;
   const to = document.getElementById('filter-to').value;
 
   if (fc) recs = recs.filter(r => r.className === fc);
+  if (fe) recs = recs.filter(r => r.eventName === fe);
   if (ft) recs = recs.filter(r => r.facilitador === ft);
+  if (fs) recs = recs.filter(r => r.simat === fs);
   if (from) recs = recs.filter(r => r.date >= from);
   if (to) recs = recs.filter(r => r.date <= to);
 
