@@ -902,6 +902,7 @@ function load() {
   if (!S.cloud) S.cloud = {};
   if (!S.syncQueue) S.syncQueue = [];
   if (!S.favorites) S.favorites = [];
+  if (!S.dismissedAlerts) S.dismissedAlerts = [];
 }
 
 function save() {
@@ -1370,12 +1371,18 @@ function computeAlerts() {
 function renderAlerts() {
   const sec = document.getElementById('alerts-section');
   if (!sec) return;
-  const alerts = computeAlerts();
-  if (!alerts.length) { sec.style.display = 'none'; sec.innerHTML = ''; return; }
-  alerts.forEach(a => { _alertCache[a.student.id + a.cls.id] = a; });
-  sec.innerHTML =
-    '<div class="stitle" style="color:var(--rojo);margin:14px 0 8px">⚠️ Alertas de ausencias</div>' +
-    alerts.slice(0, 5).map(a => {
+  const allAlerts = computeAlerts();
+  if (!allAlerts.length) { sec.style.display = 'none'; sec.innerHTML = ''; return; }
+  allAlerts.forEach(a => { _alertCache[a.student.id + a.cls.id] = a; });
+  // Separate dismissed from active
+  const active = allAlerts.filter(a => !S.dismissedAlerts.includes(a.student.id + '_' + a.cls.id));
+  const dismissed = allAlerts.filter(a => S.dismissedAlerts.includes(a.student.id + '_' + a.cls.id));
+  if (!active.length && !dismissed.length) { sec.style.display = 'none'; sec.innerHTML = ''; return; }
+
+  let html = '';
+  if (active.length) {
+    html += '<div class="stitle" style="color:var(--rojo);margin:14px 0 8px">⚠️ Alertas de ausencias</div>';
+    html += active.slice(0, 5).map(a => {
       const name = [a.student.nombre1, a.student.apellido1].filter(Boolean).join(' ');
       const badgeColor = a.type === 'consecutive' ? 'var(--rojo)' : a.type === 'intermittent' ? 'var(--naranja)' : 'var(--amarillo)';
       const badgeTextColor = a.type === 'monthly' ? '#7A5C00' : 'white';
@@ -1392,8 +1399,13 @@ function renderAlerts() {
         '<button class="btn br btn-sm" style="margin-top:10px;width:100%" ' +
           'onclick="reportAlert(\'' + a.student.id + '\',\'' + a.cls.id + '\')">📢 Reportar al colegio</button>' +
       '</div>';
-    }).join('') +
-    (alerts.length > 5 ? '<div style="text-align:center;font-size:.8rem;color:var(--text2);padding-bottom:6px">+' + (alerts.length - 5) + ' alertas más</div>' : '');
+    }).join('');
+    if (active.length > 5) html += '<div style="text-align:center;font-size:.8rem;color:var(--text2);padding-bottom:6px">+' + (active.length - 5) + ' alertas más</div>';
+  }
+  if (dismissed.length) {
+    html += '<div style="font-size:.75rem;color:var(--verde);font-family:var(--fh);font-weight:700;margin:10px 0 4px">✅ ' + dismissed.length + ' alerta' + (dismissed.length !== 1 ? 's' : '') + ' reportada' + (dismissed.length !== 1 ? 's' : '') + '</div>';
+  }
+  sec.innerHTML = html;
   sec.style.display = 'block';
 }
 
@@ -1447,15 +1459,23 @@ async function reportAlert(stuId, clsId) {
     'Reportado el ' + fechaReporte + '\n' +
     'Por: ' + (S.profile.nombre || '') + (S.profile.rol ? ' (' + S.profile.rol + ')' : '');
 
+  // Mark as dismissed
+  const key = stuId + '_' + clsId;
+  if (!S.dismissedAlerts.includes(key)) { S.dismissedAlerts.push(key); save(); }
+
   if (navigator.share) {
-    try { await navigator.share({ title: 'Alerta de ausencias', text: msg }); return; }
-    catch(e) { if (e.name === 'AbortError') return; }
+    try {
+      await navigator.share({ title: 'Alerta de ausencias', text: msg });
+      renderAlerts();
+      return;
+    } catch(e) { if (e.name === 'AbortError') return; }
   }
   if (navigator.clipboard) {
     navigator.clipboard.writeText(msg).then(() => toast('Mensaje copiado — pégalo en WhatsApp', 'ok'));
   } else {
     toast('Comparte con tu coordinador/a escolar', '');
   }
+  renderAlerts();
 }
 
 /* ═══════════════════════════════════
