@@ -733,6 +733,7 @@
       </div>
       <!-- After setup -->
       <div id="pub-connected" style="display:none">
+        <!-- Code & share -->
         <div class="card cb" style="border-left:4px solid var(--verde)">
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
             <span style="font-size:1.5rem">☁️</span>
@@ -745,13 +746,42 @@
           <button class="btn bp btn-sm" onclick="shareSchoolCode()" style="margin-bottom:8px">📤 Compartir código por WhatsApp</button>
           <div style="font-size:.72rem;color:var(--text2)" id="pub-last-sync"></div>
         </div>
-        <div class="card cb">
-          <div class="stitle" style="margin-top:0">Clases para publicar</div>
-          <div id="pub-class-list"></div>
-          <button class="btn bg" onclick="doPublishClasses()" style="margin-top:10px">📤 Publicar clases al colegio</button>
+
+        <!-- Open Sheet (primary action) -->
+        <div class="card cb" style="border-left:4px solid var(--azul)">
+          <div class="stitle" style="margin-top:0">📋 Gestionar listas de clase</div>
+          <p style="font-size:.85rem;color:var(--text2);line-height:1.5;margin-bottom:12px">
+            Abre la hoja de Google Sheets para <strong>agregar o editar las listas de estudiantes</strong> directamente. Pega los datos desde Excel o SIMAT.
+          </p>
+          <div style="background:var(--bg);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:var(--text2);line-height:1.6">
+            <strong style="color:var(--text)">Formato de la pestaña "Clases":</strong><br>
+            Cada fila = un estudiante. Las columnas son:<br>
+            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">classId</code> ·
+            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">className</code> ·
+            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">school</code> ·
+            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">grade</code> ·
+            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">aula</code> ·
+            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">simat</code> ·
+            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">apellido1</code> ·
+            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">apellido2</code> ·
+            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">nombre1</code> ·
+            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">nombre2</code><br>
+            Todos los estudiantes de la misma clase deben tener el mismo <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">classId</code>.
+          </div>
+          <button class="btn bg" onclick="openSheetLink()">📄 Abrir Google Sheet</button>
         </div>
-        <div class="card cb" style="margin-top:8px">
-          <div class="stitle" style="margin-top:0">Enlace al Dashboard</div>
+
+        <!-- Publish from app (secondary) -->
+        <div class="card cb">
+          <div class="stitle" style="margin-top:0">También puedes publicar desde el app</div>
+          <p style="font-size:.82rem;color:var(--text2);margin-bottom:8px">Si creaste clases en el app, púshelas a la hoja con este botón.</p>
+          <div id="pub-class-list"></div>
+          <button class="btn bs btn-sm" onclick="doPublishClasses()" style="margin-top:8px">📤 Publicar clases del app</button>
+        </div>
+
+        <!-- Dashboard -->
+        <div class="card cb">
+          <div class="stitle" style="margin-top:0">📊 Dashboard</div>
           <p style="font-size:.82rem;color:var(--text2);margin-bottom:8px">Abre el panel de control en tu computador para ver la asistencia de todos los docentes.</p>
           <button class="btn bp btn-sm" onclick="openDashboardLink()">📊 Abrir Dashboard</button>
         </div>
@@ -2271,6 +2301,14 @@ async function shareSchoolCode() {
     toast('Código copiado al portapapeles', 'ok');
   } catch (e) {
     toast('Código: ' + code, 'ok');
+  }
+}
+
+function openSheetLink() {
+  if (S.cloud.spreadsheetUrl) {
+    window.open(S.cloud.spreadsheetUrl, '_blank');
+  } else {
+    toast('URL de la hoja no disponible. Busca "AulaPresente" en tu Google Drive.', 'err');
   }
 }
 
