@@ -302,6 +302,9 @@
       📤 Tienes varios registros sin respaldar. <button onclick="shareData();hideBanner()" style="background:none;border:none;color:var(--azul);font-weight:800;cursor:pointer;font-size:.82rem;">Compartir / exportar →</button>
     </div>
     <div id="alerts-section" style="display:none;padding:0 14px"></div>
+    <div id="sync-badge" style="display:none;background:#FFF3CD;border-left:4px solid var(--naranja);padding:10px 16px;font-size:.82rem;font-weight:600;color:#7A5C00;cursor:pointer" onclick="processQueue()">
+      ☁️ 0 registros pendientes de sincronizar
+    </div>
     <div class="home-actions">
       <button class="btn bg" onclick="startFlow()">📋 Tomar Asistencia</button>
       <button class="btn bp" onclick="shareData()">📤 Compartir / exportar datos</button>
@@ -309,6 +312,7 @@
       <button class="btn bp" onclick="openStats()" style="background:var(--morado)">📈 Estadísticas</button>
       <button class="btn bs" onclick="openManage()">⚙️ Gestionar Clases</button>
       <button class="btn bs" onclick="openSettings()">🎯 Eventos y Horarios</button>
+      <div id="cloud-buttons"></div>
     </div>
   </div>
 
@@ -420,6 +424,7 @@
     </div>
     <div class="content nb">
       <p class="screen-hint">Aquí creas y administras tus grupos. Toca una clase para editarla o agregar estudiantes. Usa el botón 📤 para compartir la lista con otro docente.</p>
+      <div id="manage-cloud-bar"></div>
       <div class="card" id="manage-list"></div>
     </div>
   </div>
@@ -700,6 +705,102 @@
     </div>
   </div>
 
+  <!-- ══ PUBLISH TO SCHOOL (coordinator) ═════════════ -->
+  <div id="screen-publish" class="screen">
+    <div class="rb"></div>
+    <div class="topbar">
+      <button class="btn-icon" onclick="back()">←</button>
+      <div><div class="tb-title">☁️ Publicar al Colegio</div><div class="tb-sub">Comparte clases con los docentes</div></div>
+    </div>
+    <div class="content nb">
+      <!-- Before setup -->
+      <div id="pub-setup">
+        <div class="card cb">
+          <div class="stitle" style="margin-top:0">¿Cómo funciona?</div>
+          <p style="font-size:.85rem;color:var(--text2);line-height:1.5;margin-bottom:12px">
+            Al publicar, tus clases se suben a una hoja de Google Sheets.
+            Los docentes ingresan un <strong>código de colegio</strong> para descargar las listas.
+            Cuando tomen asistencia, los registros se envían automáticamente a la misma hoja.
+          </p>
+          <div class="fg" style="margin-bottom:10px">
+            <label class="fl">Código del colegio</label>
+            <input class="fi" type="text" id="pub-code" placeholder="Ej: BOL-2026" maxlength="15" autocomplete="off"
+              style="text-transform:uppercase;font-family:var(--fh);font-weight:800;font-size:1.1rem;letter-spacing:.05em">
+            <div style="font-size:.72rem;color:var(--text2);margin-top:4px">Código corto que compartirás con los docentes por WhatsApp</div>
+          </div>
+          <button class="btn bg" onclick="doCloudSetup()">🚀 Crear conexión y publicar clases</button>
+        </div>
+      </div>
+      <!-- After setup -->
+      <div id="pub-connected" style="display:none">
+        <div class="card cb" style="border-left:4px solid var(--verde)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-size:1.5rem">☁️</span>
+            <div>
+              <div style="font-family:var(--fh);font-weight:800;font-size:1rem" id="pub-school-name"></div>
+              <div style="font-family:var(--fh);font-weight:900;font-size:1.3rem;color:var(--azul);letter-spacing:.05em" id="pub-code-display"></div>
+            </div>
+          </div>
+          <p style="font-size:.82rem;color:var(--text2);margin-bottom:10px">Comparte este código con tus docentes para que descarguen las listas de clase.</p>
+          <button class="btn bp btn-sm" onclick="shareSchoolCode()" style="margin-bottom:8px">📤 Compartir código por WhatsApp</button>
+          <div style="font-size:.72rem;color:var(--text2)" id="pub-last-sync"></div>
+        </div>
+        <div class="card cb">
+          <div class="stitle" style="margin-top:0">Clases para publicar</div>
+          <div id="pub-class-list"></div>
+          <button class="btn bg" onclick="doPublishClasses()" style="margin-top:10px">📤 Publicar clases al colegio</button>
+        </div>
+        <div class="card cb" style="margin-top:8px">
+          <div class="stitle" style="margin-top:0">Enlace al Dashboard</div>
+          <p style="font-size:.82rem;color:var(--text2);margin-bottom:8px">Abre el panel de control en tu computador para ver la asistencia de todos los docentes.</p>
+          <button class="btn bp btn-sm" onclick="openDashboardLink()">📊 Abrir Dashboard</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ CONNECT TO SCHOOL (teacher) ═══════════════ -->
+  <div id="screen-connect" class="screen">
+    <div class="rb"></div>
+    <div class="topbar">
+      <button class="btn-icon" onclick="back()">←</button>
+      <div><div class="tb-title">☁️ Conectar a un Colegio</div><div class="tb-sub">Descarga las listas de clase</div></div>
+    </div>
+    <div class="content nb">
+      <!-- Before connected -->
+      <div id="conn-setup">
+        <div class="card cb">
+          <p style="font-size:.85rem;color:var(--text2);line-height:1.5;margin-bottom:12px">
+            Si tu coordinador/a te compartió un <strong>código de colegio</strong>, ingrésalo aquí para descargar las listas de estudiantes automáticamente.
+          </p>
+          <div class="fg" style="margin-bottom:10px">
+            <label class="fl">Código del colegio</label>
+            <input class="fi" type="text" id="conn-code" placeholder="Ej: BOL-2026" maxlength="15" autocomplete="off"
+              style="text-transform:uppercase;font-family:var(--fh);font-weight:800;font-size:1.1rem;letter-spacing:.05em">
+          </div>
+          <button class="btn bg" onclick="doConnect()">🔗 Conectar</button>
+        </div>
+      </div>
+      <!-- After connected -->
+      <div id="conn-connected" style="display:none">
+        <div class="card cb" style="border-left:4px solid var(--verde)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-size:1.5rem">✅</span>
+            <div>
+              <div style="font-family:var(--fh);font-weight:800;font-size:1rem" id="conn-school-name"></div>
+              <div style="font-family:var(--fh);font-weight:900;font-size:1.1rem;color:var(--azul)" id="conn-code-display"></div>
+            </div>
+          </div>
+          <div style="font-size:.72rem;color:var(--text2);margin-bottom:10px" id="conn-last-sync"></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn bp btn-sm" onclick="doRefreshClasses()" style="flex:1">🔄 Actualizar listas</button>
+            <button class="btn br btn-sm" onclick="doDisconnect()">Desconectar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ MODAL ══════════════════════════════════════ -->
   <div class="modal-overlay" id="modal">
     <div class="modal-sheet">
@@ -739,7 +840,7 @@ function storeSet(k, v) {
 /* ═══════════════════════════════════
    STATE
 ═══════════════════════════════════ */
-let S = { classes:[], events:[], slots:[], records:[], profile:{} };
+let S = { classes:[], events:[], slots:[], records:[], profile:{}, cloud:{}, syncQueue:[] };
 let stack = ['home'];
 
 // Session
@@ -766,6 +867,8 @@ function load() {
   if (!S.profile) S.profile = { nombre:'', idPersonal:'', institucion:'', idInstitucion:'', rol:'', saveCount:0 };
   if (!S.profile.idPersonal)    S.profile.idPersonal    = '';
   if (!S.profile.idInstitucion) S.profile.idInstitucion = '';
+  if (!S.cloud) S.cloud = {};
+  if (!S.syncQueue) S.syncQueue = [];
 }
 
 function save() {
@@ -775,6 +878,235 @@ function save() {
       toast('Almacenamiento lleno. Exporta y borra registros.','err');
   }
 }
+
+/* ═══════════════════════════════════
+   CLOUD SYNC ENGINE
+═══════════════════════════════════ */
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYY2xzEnkEhkKlVgVtKe_iTGxoH-oWjsy2xXU_z7OmsFoBQ3bJBsxVW0aNvs93_Abd-A/exec';
+
+function cloudOk() { return SCRIPT_URL && S.cloud && S.cloud.schoolCode; }
+
+// Deterministic student ID from SIMAT (consistent across devices)
+function stableStudentId(simat) {
+  let h = 0;
+  for (let i = 0; i < simat.length; i++) {
+    h = ((h << 5) - h) + simat.charCodeAt(i);
+    h |= 0;
+  }
+  return 'cs_' + Math.abs(h).toString(36);
+}
+
+// ── Setup (coordinator creates school) ──
+async function cloudSetup(code, schoolName) {
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    redirect: 'follow',
+    body: JSON.stringify({
+      action: 'setup',
+      code: code,
+      schoolName: schoolName,
+      coordinatorName: S.profile.nombre || ''
+    })
+  });
+  return await res.json();
+}
+
+// ── Ping (validate school code) ──
+async function cloudPing(code) {
+  const res = await fetch(SCRIPT_URL + '?action=ping&code=' + encodeURIComponent(code));
+  return await res.json();
+}
+
+// ── Push classes (coordinator publishes) ──
+async function cloudPushClasses(classes) {
+  if (!cloudOk()) return;
+  const payload = classes.map(cls => ({
+    classId: cls.id,
+    name: cls.name,
+    school: cls.school || '',
+    grade: cls.grade || '',
+    aula: cls.aula || '',
+    version: cls.cloudVersion || 0,
+    students: cls.students.map(s => ({
+      simat: s.simat || '', apellido1: s.apellido1 || '', apellido2: s.apellido2 || '',
+      nombre1: s.nombre1 || '', nombre2: s.nombre2 || ''
+    }))
+  }));
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    redirect: 'follow',
+    body: JSON.stringify({ action: 'pushClasses', code: S.cloud.schoolCode, classes: payload })
+  });
+  const result = await res.json();
+  if (result.ok) {
+    classes.forEach(cls => {
+      cls.cloudVersion = (cls.cloudVersion || 0) + 1;
+      cls.source = 'cloud';
+    });
+    S.cloud.lastClassSync = new Date().toISOString();
+    save();
+  }
+  return result;
+}
+
+// ── Fetch classes (teacher pulls rosters) ──
+async function cloudFetchClasses() {
+  if (!cloudOk()) return;
+  const res = await fetch(SCRIPT_URL + '?action=getClasses&code=' + encodeURIComponent(S.cloud.schoolCode));
+  const result = await res.json();
+  if (!result.ok) { toast(result.error || 'Error al sincronizar', 'err'); return; }
+
+  let added = 0, updated = 0;
+  result.classes.forEach(cc => {
+    // Generate stable student IDs
+    const students = cc.students.map(s => ({
+      id: stableStudentId(s.simat),
+      simat: s.simat, apellido1: s.apellido1, apellido2: s.apellido2,
+      nombre1: s.nombre1, nombre2: s.nombre2
+    }));
+
+    // Try to match with existing local class
+    const existIdx = S.classes.findIndex(c => c.cloudClassId === cc.classId || c.id === cc.classId);
+    if (existIdx >= 0) {
+      const existing = S.classes[existIdx];
+      // Migrate absentIds in existing records if student IDs changed
+      const oldToNew = {};
+      existing.students.forEach(os => {
+        const ns = students.find(s => s.simat === os.simat);
+        if (ns && ns.id !== os.id) oldToNew[os.id] = ns.id;
+      });
+      if (Object.keys(oldToNew).length) {
+        S.records.forEach(r => {
+          if (r.classId !== existing.id) return;
+          r.absentIds = r.absentIds.map(id => oldToNew[id] || id);
+        });
+      }
+      existing.students = students;
+      existing.name = cc.name;
+      existing.school = cc.school;
+      existing.grade = cc.grade;
+      existing.aula = cc.aula;
+      existing.cloudClassId = cc.classId;
+      existing.cloudVersion = cc.version;
+      existing.source = 'cloud';
+      existing.readOnly = true;
+      updated++;
+    } else {
+      S.classes.push({
+        id: cc.classId,
+        cloudClassId: cc.classId,
+        name: cc.name,
+        school: cc.school,
+        grade: cc.grade,
+        aula: cc.aula,
+        students: students,
+        source: 'cloud',
+        readOnly: true,
+        cloudVersion: cc.version,
+        createdAt: new Date().toISOString()
+      });
+      added++;
+    }
+  });
+
+  S.cloud.lastClassSync = new Date().toISOString();
+  save();
+  if (added || updated) {
+    toast((added ? added + ' clase(s) nueva(s)' : '') + (added && updated ? ', ' : '') + (updated ? updated + ' actualizada(s)' : ''), 'ok');
+  } else {
+    toast('Clases al día', 'ok');
+  }
+}
+
+// ── Sync single attendance record to cloud ──
+async function syncRecordToCloud(rec) {
+  if (!cloudOk()) return;
+  const cls = getCls(rec.classId);
+  if (!cls) return;
+
+  const evName = S.events.find(e => e.id === rec.eventId);
+  const payload = {
+    action: 'pushAttendance',
+    code: S.cloud.schoolCode,
+    record: {
+      recordId: rec.id,
+      classId: rec.classId,
+      className: cls.name,
+      date: rec.date,
+      eventName: evName ? evName.name : rec.eventId,
+      slotLabel: rec.slotLabel || '',
+      facilitador: rec.facilitador.nombre || '',
+      facilitadorId: rec.facilitador.idPersonal || '',
+      facilitadorRol: rec.facilitador.rol || '',
+      savedAt: rec.savedAt,
+      students: cls.students.map(s => ({
+        simat: s.simat || '',
+        apellido1: s.apellido1 || '',
+        apellido2: s.apellido2 || '',
+        nombre1: s.nombre1 || '',
+        nombre2: s.nombre2 || '',
+        estado: rec.absentIds.includes(s.id) ? 'Ausente' : 'Presente'
+      }))
+    }
+  };
+
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+    if (result.ok) {
+      rec.synced = true;
+      save();
+    } else {
+      throw new Error(result.error);
+    }
+  } catch (err) {
+    // Queue for retry
+    S.syncQueue.push(payload);
+    save();
+    updateSyncBadge();
+  }
+}
+
+// ── Process offline queue ──
+async function processQueue() {
+  if (!SCRIPT_URL || !S.syncQueue.length) return;
+  const remaining = [];
+  for (const payload of S.syncQueue) {
+    try {
+      const res = await fetch(SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await res.json();
+      if (!result.ok) remaining.push(payload);
+    } catch (err) {
+      remaining.push(payload);
+    }
+  }
+  S.syncQueue = remaining;
+  save();
+  updateSyncBadge();
+  if (!remaining.length && S.syncQueue.length === 0) {
+    toast('Registros sincronizados ☁️', 'ok');
+  }
+}
+
+function updateSyncBadge() {
+  const el = document.getElementById('sync-badge');
+  if (el) {
+    const n = S.syncQueue.length;
+    el.style.display = n ? 'block' : 'none';
+    el.textContent = n + ' registro' + (n !== 1 ? 's' : '') + ' pendiente' + (n !== 1 ? 's' : '') + ' de sincronizar';
+  }
+}
+
+// Listen for connectivity changes
+window.addEventListener('online', () => { setTimeout(processQueue, 2000); });
 
 /* ═══════════════════════════════════
    DEFAULTS
@@ -943,6 +1275,23 @@ function renderHome() {
   if (banner) banner.style.display = (sc > 0 && sc % 5 === 0) ? 'block' : 'none';
 
   renderAlerts();
+  updateSyncBadge();
+
+  // Cloud buttons on home
+  const cbEl = document.getElementById('cloud-buttons');
+  if (cbEl) {
+    if (!SCRIPT_URL) {
+      cbEl.innerHTML = '';
+    } else if (S.cloud.role === 'coordinator') {
+      cbEl.innerHTML = '<button class="btn bn" onclick="openPublish()" style="margin-top:2px">☁️ Publicar al Colegio</button>';
+    } else if (S.cloud.role === 'teacher' && S.cloud.schoolCode) {
+      cbEl.innerHTML = '<button class="btn bn" onclick="openConnect()" style="margin-top:2px">☁️ Conectado: ' + esc(S.cloud.schoolCode) + '</button>';
+    } else {
+      cbEl.innerHTML = `
+        <button class="btn bn" onclick="openPublish()" style="margin-top:2px">☁️ Soy coordinador/a — Publicar clases</button>
+        <button class="btn bs" onclick="openConnect()" style="margin-top:2px">🔗 Soy docente — Conectar a un colegio</button>`;
+    }
+  }
 }
 
 /* ═══════════════════════════════════
@@ -1300,6 +1649,8 @@ function saveAttendance() {
   S.profile.saveCount++;
   save();
   toast('✅ Asistencia guardada','ok');
+  // Cloud sync (non-blocking)
+  if (cloudOk()) syncRecordToCloud(rec);
   stack=['home']; go('home'); renderHome();
 }
 
@@ -1309,6 +1660,16 @@ function saveAttendance() {
 function openManage() { renderManage(); go('manage'); }
 
 function renderManage() {
+  // Cloud bar for teachers
+  const cbar = document.getElementById('manage-cloud-bar');
+  if (cbar) {
+    if (S.cloud.role === 'teacher' && S.cloud.schoolCode) {
+      cbar.innerHTML = `<button class="btn bp btn-sm" onclick="doRefreshClasses();renderManage()" style="margin-bottom:10px;width:100%">🔄 Actualizar listas del colegio</button>`;
+    } else {
+      cbar.innerHTML = '';
+    }
+  }
+
   const el=document.getElementById('manage-list');
   if(!S.classes.length){
     el.innerHTML='<div class="empty"><div class="ei">📚</div><h3>Sin clases aún</h3><p>Crea tu primera clase con "+ Nueva"</p></div>';
@@ -1317,16 +1678,18 @@ function renderManage() {
   el.innerHTML=S.classes.map(cls=>{
     const d=dot(cls);
     const rc=S.records.filter(r=>r.classId===cls.id).length;
+    const isCloud = cls.source === 'cloud';
+    const isReadOnly = cls.readOnly && S.cloud.role === 'teacher';
     return `<div class="class-item" onclick="openEditClass('${cls.id}')">
       <div class="cdot ${d}"></div>
       <div class="ci">
-        <div class="cn">${esc(cls.name)}</div>
+        <div class="cn">${isCloud ? '<span style="color:var(--azul);font-size:.8em">☁️</span> ' : ''}${esc(cls.name)}</div>
         <div class="cm">${esc(cls.school||'')}${cls.grade?(cls.school?' · ':'')+' Grado '+cls.grade:''}${cls.aula?' · Aula '+cls.aula:''}</div>
       </div>
       <div class="cbadge">${cls.students.length} est.</div>
       <div class="cbadge" style="background:#EEF5FF;color:var(--azul)">${rc} reg.</div>
-      <button class="cdel" onclick="event.stopPropagation();exportClass('${cls.id}')" title="Compartir clase">📤</button>
-      <button class="cdel" onclick="event.stopPropagation();confirmDelCls('${cls.id}')">🗑</button>
+      ${isReadOnly ? '' : `<button class="cdel" onclick="event.stopPropagation();exportClass('${cls.id}')" title="Compartir clase">📤</button>`}
+      ${isReadOnly ? '' : `<button class="cdel" onclick="event.stopPropagation();confirmDelCls('${cls.id}')">🗑</button>`}
     </div>`;
   }).join('');
 }
@@ -1381,13 +1744,22 @@ function openAddClass() {
 
 function openEditClass(id) {
   const cls=getCls(id); if(!cls)return;
+  const isReadOnly = cls.readOnly && S.cloud.role === 'teacher';
   edClsId=id; pendStu=cls.students.map(s=>({...s}));
-  document.getElementById('edit-cls-title').textContent='Editar Clase';
+  document.getElementById('edit-cls-title').textContent= isReadOnly ? 'Ver Clase ☁️' : 'Editar Clase';
   document.getElementById('cls-name').value=cls.name;
   _setGrade(cls.grade||''); _setAula(cls.aula||'');
   document.getElementById('cls-school-hint').textContent=S.profile.institucion||cls.school||'(sin colegio en perfil)';
   clearStuForm();
   document.getElementById('import-ta').value='';
+  // Disable editing for read-only cloud classes
+  const editableEls = document.querySelectorAll('#screen-edit-cls input, #screen-edit-cls select, #screen-edit-cls textarea');
+  editableEls.forEach(el => el.disabled = isReadOnly);
+  const editBtns = document.querySelectorAll('#screen-edit-cls .btn:not(.btn-icon)');
+  editBtns.forEach(el => {
+    if (isReadOnly && !el.textContent.includes('←')) el.style.display = 'none';
+    else el.style.display = '';
+  });
   renderPendStu();
   go('edit-cls');
 }
@@ -1397,9 +1769,11 @@ function renderPendStu() {
   const el=document.getElementById('stu-editor');
   const sorted=sortStu(pendStu);
   if(!sorted.length){el.innerHTML='<div class="empty" style="padding:18px"><p>Agrega estudiantes abajo ↓</p></div>';return;}
+  const cls = edClsId ? getCls(edClsId) : null;
+  const isReadOnly = cls && cls.readOnly && S.cloud.role === 'teacher';
   el.innerHTML=sorted.map(s=>`<div class="ser">
     <div class="sei"><div class="sen">${esc(dname(s))}</div><div class="sem">SIMAT: ${esc(s.simat||'—')}</div></div>
-    <button class="brem" onclick="remStu('${s.id}')">✕</button>
+    ${isReadOnly ? '' : `<button class="brem" onclick="remStu('${s.id}')">✕</button>`}
   </div>`).join('');
 }
 
@@ -1778,6 +2152,192 @@ function handleImportClass(event) {
     event.target.value = '';
   };
   reader.readAsText(file);
+}
+
+/* ═══════════════════════════════════
+   CLOUD: COORDINATOR FLOWS
+═══════════════════════════════════ */
+function openPublish() {
+  const hasSetup = S.cloud.role === 'coordinator' && S.cloud.schoolCode;
+  document.getElementById('pub-setup').style.display = hasSetup ? 'none' : 'block';
+  document.getElementById('pub-connected').style.display = hasSetup ? 'block' : 'none';
+
+  if (!hasSetup) {
+    // Auto-suggest code from institution name
+    const inst = (S.profile.institucion || '').toUpperCase().replace(/[^A-Z]/g, '');
+    const prefix = inst.slice(0, 3) || 'COL';
+    const year = new Date().getFullYear();
+    document.getElementById('pub-code').value = prefix + '-' + year;
+  } else {
+    renderPublishConnected();
+  }
+  go('publish');
+}
+
+function renderPublishConnected() {
+  document.getElementById('pub-school-name').textContent = S.cloud.schoolName || S.profile.institucion || '';
+  document.getElementById('pub-code-display').textContent = S.cloud.schoolCode;
+  document.getElementById('pub-last-sync').textContent = S.cloud.lastClassSync
+    ? 'Última publicación: ' + new Date(S.cloud.lastClassSync).toLocaleString('es-CO')
+    : '';
+  // Class list
+  const el = document.getElementById('pub-class-list');
+  el.innerHTML = S.classes.map(cls =>
+    `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:1.1rem">📚</span>
+      <div style="flex:1">
+        <div style="font-family:var(--fh);font-weight:700;font-size:.88rem">${esc(cls.name)}</div>
+        <div style="font-size:.72rem;color:var(--text2)">${cls.students.length} estudiantes${cls.grade ? ' · Grado ' + cls.grade : ''}</div>
+      </div>
+      <span style="font-size:.72rem;color:var(--verde);font-weight:700">${cls.source === 'cloud' ? '☁️' : ''}</span>
+    </div>`
+  ).join('');
+}
+
+async function doCloudSetup() {
+  const code = document.getElementById('pub-code').value.trim().toUpperCase();
+  if (!code || code.length < 3) { toast('Código muy corto (mín. 3 caracteres)', 'err'); return; }
+  if (!SCRIPT_URL) { toast('URL del servidor no configurada', 'err'); return; }
+
+  toast('Creando conexión...', '');
+  try {
+    const result = await cloudSetup(code, S.profile.institucion || '');
+    if (!result.ok) { toast(result.error || 'Error al crear', 'err'); return; }
+
+    S.cloud.schoolCode = code;
+    S.cloud.schoolName = result.schoolName || S.profile.institucion || '';
+    S.cloud.role = 'coordinator';
+    S.cloud.spreadsheetUrl = result.spreadsheetUrl || '';
+    save();
+
+    // Publish classes immediately
+    if (S.classes.length) {
+      const pubResult = await cloudPushClasses(S.classes);
+      if (pubResult && pubResult.ok) {
+        toast('Conexión creada · ' + pubResult.classesWritten + ' clase(s) publicada(s)', 'ok');
+      } else {
+        toast('Conexión creada, pero error al publicar clases', 'err');
+      }
+    } else {
+      toast('Conexión creada. Agrega clases y publícalas.', 'ok');
+    }
+
+    document.getElementById('pub-setup').style.display = 'none';
+    document.getElementById('pub-connected').style.display = 'block';
+    renderPublishConnected();
+  } catch (err) {
+    toast('Error de conexión: ' + err.message, 'err');
+  }
+}
+
+async function doPublishClasses() {
+  if (!cloudOk()) return;
+  if (!S.classes.length) { toast('No hay clases para publicar', 'err'); return; }
+
+  toast('Publicando clases...', '');
+  try {
+    const result = await cloudPushClasses(S.classes);
+    if (result && result.ok) {
+      toast(result.classesWritten + ' clase(s) publicada(s) ☁️', 'ok');
+      renderPublishConnected();
+    } else {
+      toast(result?.error || 'Error al publicar', 'err');
+    }
+  } catch (err) {
+    toast('Error: ' + err.message, 'err');
+  }
+}
+
+async function shareSchoolCode() {
+  const code = S.cloud.schoolCode;
+  const text = '📋 *AulaPresente*\n\nUsa este código para conectarte al colegio:\n\n🔑 *' + code + '*\n\n1. Abre AulaPresente: https://oscarmdiazb.github.io/asistencia-escolar/\n2. Toca "Conectar a un colegio"\n3. Ingresa el código: ' + code;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Código AulaPresente: ' + code, text: text });
+      return;
+    } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  // Fallback: copy to clipboard
+  try {
+    await navigator.clipboard.writeText(text);
+    toast('Código copiado al portapapeles', 'ok');
+  } catch (e) {
+    toast('Código: ' + code, 'ok');
+  }
+}
+
+function openDashboardLink() {
+  const code = S.cloud.schoolCode || '';
+  const url = 'https://oscarmdiazb.github.io/asistencia-escolar/dashboard.html#' + code;
+  window.open(url, '_blank');
+}
+
+/* ═══════════════════════════════════
+   CLOUD: TEACHER FLOWS
+═══════════════════════════════════ */
+function openConnect() {
+  const connected = S.cloud.role === 'teacher' && S.cloud.schoolCode;
+  document.getElementById('conn-setup').style.display = connected ? 'none' : 'block';
+  document.getElementById('conn-connected').style.display = connected ? 'block' : 'none';
+
+  if (connected) {
+    document.getElementById('conn-school-name').textContent = S.cloud.schoolName || '';
+    document.getElementById('conn-code-display').textContent = S.cloud.schoolCode;
+    document.getElementById('conn-last-sync').textContent = S.cloud.lastClassSync
+      ? 'Última sincronización: ' + new Date(S.cloud.lastClassSync).toLocaleString('es-CO')
+      : '';
+  }
+  go('connect');
+}
+
+async function doConnect() {
+  const code = document.getElementById('conn-code').value.trim().toUpperCase();
+  if (!code) { toast('Ingresa el código del colegio', 'err'); return; }
+  if (!SCRIPT_URL) { toast('URL del servidor no configurada', 'err'); return; }
+
+  toast('Verificando código...', '');
+  try {
+    const result = await cloudPing(code);
+    if (!result.ok) { toast(result.error || 'Código no encontrado', 'err'); return; }
+
+    S.cloud.schoolCode = code;
+    S.cloud.schoolName = result.schoolName || '';
+    S.cloud.role = 'teacher';
+    save();
+
+    toast('Conectado a ' + (result.schoolName || code) + '. Descargando clases...', 'ok');
+    await cloudFetchClasses();
+
+    document.getElementById('conn-setup').style.display = 'none';
+    document.getElementById('conn-connected').style.display = 'block';
+    document.getElementById('conn-school-name').textContent = S.cloud.schoolName || '';
+    document.getElementById('conn-code-display').textContent = code;
+    document.getElementById('conn-last-sync').textContent = 'Última sincronización: ' + new Date().toLocaleString('es-CO');
+  } catch (err) {
+    toast('Error de conexión: ' + err.message, 'err');
+  }
+}
+
+async function doRefreshClasses() {
+  if (!cloudOk()) return;
+  toast('Actualizando listas...', '');
+  try {
+    await cloudFetchClasses();
+    document.getElementById('conn-last-sync').textContent = 'Última sincronización: ' + new Date().toLocaleString('es-CO');
+  } catch (err) {
+    toast('Error: ' + err.message, 'err');
+  }
+}
+
+function doDisconnect() {
+  // Only remove cloud config, keep local classes/records
+  S.cloud = {};
+  S.syncQueue = [];
+  save();
+  toast('Desconectado', 'ok');
+  renderHome();
+  back();
 }
 
 /* ═══════════════════════════════════
@@ -2222,6 +2782,9 @@ try {
   }
 
   renderHome();
+
+  // Process any queued cloud syncs
+  if (S.syncQueue && S.syncQueue.length) setTimeout(processQueue, 3000);
 
   // If no profile set, go to profile setup first
   if(!S.profile || !S.profile.nombre) {

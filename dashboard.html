@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AulaPresente — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --rojo:#E8302A; --naranja:#F47920; --amarillo:#F9C200;
+      --verde:#4BAD4E; --azul:#3AABE3; --morado:#8B4EA6;
+      --bg:#F4F6FB; --white:#FFFFFF; --text:#1A1A2E; --text2:#666677;
+      --border:#E0E4EF; --shadow:0 2px 12px rgba(0,0,0,0.08);
+      --fh:'Nunito',system-ui,sans-serif;
+      --fb:'Nunito Sans',system-ui,sans-serif;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--fb);background:var(--bg);color:var(--text);min-height:100vh}
+
+    /* Rainbow bar */
+    .rb{height:6px;background:linear-gradient(to right,
+      var(--rojo) 0%,var(--rojo) 16.6%,var(--naranja) 16.6%,var(--naranja) 33.3%,
+      var(--amarillo) 33.3%,var(--amarillo) 50%,var(--verde) 50%,var(--verde) 66.6%,
+      var(--azul) 66.6%,var(--azul) 83.3%,var(--morado) 83.3%,var(--morado) 100%)}
+
+    /* Header */
+    .header{background:linear-gradient(135deg,#1A2A4A 0%,#0D3559 100%);color:white;padding:20px 24px}
+    .header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+    .header h1{font-family:var(--fh);font-weight:900;font-size:1.4rem;flex:1}
+    .header h1 span:first-child{color:var(--rojo)} .header h1 span:last-child{color:var(--azul)}
+    .header-info{font-size:.85rem;opacity:.8}
+    .header-code{font-family:var(--fh);font-weight:900;font-size:1.1rem;background:rgba(255,255,255,.15);padding:6px 14px;border-radius:8px;letter-spacing:.05em}
+
+    /* Connect form */
+    .connect-bar{max-width:1200px;margin:20px auto;padding:0 24px}
+    .connect-form{background:var(--white);border-radius:12px;box-shadow:var(--shadow);padding:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .connect-form label{font-family:var(--fh);font-weight:700;font-size:.9rem}
+    .connect-form input{font-family:var(--fh);font-weight:800;font-size:1rem;border:2px solid var(--border);border-radius:8px;padding:8px 14px;width:180px;text-transform:uppercase;letter-spacing:.05em}
+    .connect-form input:focus{outline:none;border-color:var(--azul)}
+    .connect-form button{font-family:var(--fh);font-weight:700;background:var(--azul);color:white;border:none;border-radius:8px;padding:10px 20px;cursor:pointer;font-size:.9rem}
+    .connect-form button:hover{opacity:.9}
+
+    /* Main layout */
+    .main{max-width:1200px;margin:0 auto;padding:20px 24px}
+
+    /* KPI cards */
+    .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+    .kpi{background:var(--white);border-radius:12px;box-shadow:var(--shadow);padding:20px;text-align:center}
+    .kpi .value{font-family:var(--fh);font-size:2rem;font-weight:900}
+    .kpi .label{font-size:.75rem;color:var(--text2);text-transform:uppercase;letter-spacing:.03em;margin-top:4px}
+
+    /* Cards */
+    .card{background:var(--white);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px}
+    .card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+    .card-header h2{font-family:var(--fh);font-weight:800;font-size:1rem;flex:1}
+    .card-body{padding:16px 20px}
+
+    /* Filters */
+    .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+    .filters select,.filters input{font-family:var(--fb);font-size:.85rem;border:2px solid var(--border);border-radius:8px;padding:8px 12px;background:var(--white)}
+    .filters select:focus,.filters input:focus{outline:none;border-color:var(--azul)}
+
+    /* Tables */
+    table{width:100%;border-collapse:collapse;font-size:.85rem}
+    th{font-family:var(--fh);font-weight:700;text-align:left;padding:10px 12px;border-bottom:2px solid var(--border);color:var(--text2);font-size:.75rem;text-transform:uppercase;letter-spacing:.03em;position:sticky;top:0;background:var(--white)}
+    td{padding:10px 12px;border-bottom:1px solid var(--border)}
+    tr:hover td{background:#F8F9FE}
+    .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-family:var(--fh);font-weight:700;font-size:.72rem}
+    .badge-red{background:#FEE8E8;color:var(--rojo)}
+    .badge-orange{background:#FFF0E0;color:var(--naranja)}
+    .badge-green{background:#E8F5E9;color:var(--verde)}
+
+    /* Charts (CSS bars) */
+    .bar-chart{display:flex;flex-direction:column;gap:8px}
+    .bar-row{display:flex;align-items:center;gap:10px}
+    .bar-label{font-family:var(--fh);font-weight:700;font-size:.8rem;width:140px;flex-shrink:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .bar-track{flex:1;background:var(--bg);border-radius:4px;height:20px;position:relative}
+    .bar-fill{height:100%;border-radius:4px;transition:width .3s}
+    .bar-val{font-family:var(--fh);font-weight:800;font-size:.75rem;width:50px;flex-shrink:0}
+
+    /* Two-column layout */
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    @media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+
+    /* Loading / empty */
+    .loading{text-align:center;padding:60px 20px;color:var(--text2)}
+    .loading .spinner{display:inline-block;width:36px;height:36px;border:4px solid var(--border);border-top-color:var(--azul);border-radius:50%;animation:spin .8s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .empty-msg{text-align:center;padding:40px 20px;color:var(--text2);font-size:.9rem}
+
+    /* Refresh button */
+    .btn-refresh{font-family:var(--fh);font-weight:700;background:none;border:2px solid rgba(255,255,255,.3);color:white;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.8rem}
+    .btn-refresh:hover{background:rgba(255,255,255,.1)}
+  </style>
+</head>
+<body>
+  <div class="rb"></div>
+  <div class="header">
+    <div class="header-inner">
+      <h1><span>Aula</span><span>Presente</span> — Dashboard</h1>
+      <div id="header-school" style="display:none">
+        <span class="header-info" id="school-name-display"></span>
+        <span class="header-code" id="school-code-display"></span>
+      </div>
+      <button class="btn-refresh" onclick="refreshData()">🔄 Actualizar</button>
+    </div>
+  </div>
+
+  <!-- Connect form (shown when no code) -->
+  <div class="connect-bar" id="connect-section">
+    <div class="connect-form">
+      <label>Código del colegio:</label>
+      <input type="text" id="code-input" placeholder="BOL-2026" maxlength="15">
+      <button onclick="connectAndLoad()">Conectar</button>
+      <span id="connect-error" style="color:var(--rojo);font-size:.85rem;font-weight:600"></span>
+    </div>
+  </div>
+
+  <!-- Main content (hidden until connected) -->
+  <div class="main" id="main-content" style="display:none">
+    <!-- Loading -->
+    <div id="loading" class="loading">
+      <div class="spinner"></div>
+      <p style="margin-top:12px">Cargando datos...</p>
+    </div>
+
+    <!-- Dashboard content -->
+    <div id="dashboard" style="display:none">
+      <!-- KPIs -->
+      <div class="kpis">
+        <div class="kpi"><div class="value" id="kpi-records" style="color:var(--azul)">0</div><div class="label">Sesiones registradas</div></div>
+        <div class="kpi"><div class="value" id="kpi-rate" style="color:var(--verde)">—</div><div class="label">% Asistencia</div></div>
+        <div class="kpi"><div class="value" id="kpi-classes" style="color:var(--morado)">0</div><div class="label">Clases activas</div></div>
+        <div class="kpi"><div class="value" id="kpi-alerts" style="color:var(--rojo)">0</div><div class="label">Alertas de ausencia</div></div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filters">
+        <select id="filter-class" onchange="renderDashboard()"><option value="">Todas las clases</option></select>
+        <select id="filter-teacher" onchange="renderDashboard()"><option value="">Todos los docentes</option></select>
+        <input type="date" id="filter-from" onchange="renderDashboard()">
+        <input type="date" id="filter-to" onchange="renderDashboard()">
+        <button style="font-family:var(--fh);font-weight:700;background:var(--bg);border:2px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:.82rem" onclick="clearFilters()">Limpiar filtros</button>
+      </div>
+
+      <!-- Charts row -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-header"><h2>Ausencias por clase</h2></div>
+          <div class="card-body" id="chart-by-class"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h2>Registros por docente</h2></div>
+          <div class="card-body" id="chart-by-teacher"></div>
+        </div>
+      </div>
+
+      <!-- Alerts table -->
+      <div class="card" id="alerts-card">
+        <div class="card-header"><h2>⚠️ Alertas — Estudiantes con 3+ ausencias</h2></div>
+        <div class="card-body" style="padding:0;max-height:400px;overflow-y:auto">
+          <table><thead><tr>
+            <th>Estudiante</th><th>SIMAT</th><th>Clase</th><th>Grado</th><th>Faltas</th><th>Última ausencia</th>
+          </tr></thead><tbody id="alerts-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- Detailed records -->
+      <div class="card">
+        <div class="card-header"><h2>📋 Registros detallados</h2></div>
+        <div class="card-body" style="padding:0;max-height:500px;overflow-y:auto">
+          <table><thead><tr>
+            <th>Fecha</th><th>Clase</th><th>Grado</th><th>Evento</th><th>Franja</th><th>Docente</th><th>Presentes</th><th>Ausentes</th><th>Tasa</th>
+          </tr></thead><tbody id="records-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- Last updated -->
+      <div style="text-align:center;padding:20px;font-size:.78rem;color:var(--text2)" id="last-updated"></div>
+    </div>
+  </div>
+
+<script>
+'use strict';
+
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYY2xzEnkEhkKlVgVtKe_iTGxoH-oWjsy2xXU_z7OmsFoBQ3bJBsxVW0aNvs93_Abd-A/exec';
+
+let DATA = null; // { classes, records, schoolName, schoolCode }
+
+// ── Init ──
+(function init() {
+  const hash = location.hash.replace('#', '').trim().toUpperCase();
+  if (hash) {
+    document.getElementById('code-input').value = hash;
+    connectAndLoad();
+  }
+})();
+
+async function connectAndLoad() {
+  const code = document.getElementById('code-input').value.trim().toUpperCase();
+  if (!code) { showError('Ingresa un código'); return; }
+  if (!SCRIPT_URL) { showError('URL del servidor no configurada'); return; }
+
+  showError('');
+  document.getElementById('connect-section').style.display = 'none';
+  document.getElementById('main-content').style.display = 'block';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('dashboard').style.display = 'none';
+
+  try {
+    const res = await fetch(SCRIPT_URL + '?action=getDashboard&code=' + encodeURIComponent(code));
+    const result = await res.json();
+    if (!result.ok) {
+      showError(result.error || 'Error al conectar');
+      document.getElementById('main-content').style.display = 'none';
+      document.getElementById('connect-section').style.display = 'block';
+      return;
+    }
+
+    DATA = result;
+    location.hash = code;
+
+    // Show header info
+    document.getElementById('header-school').style.display = 'flex';
+    document.getElementById('school-name-display').textContent = result.schoolName || '';
+    document.getElementById('school-code-display').textContent = code;
+
+    // Populate filters
+    populateFilters();
+
+    // Render
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    renderDashboard();
+  } catch (err) {
+    showError('Error de red: ' + err.message);
+    document.getElementById('main-content').style.display = 'none';
+    document.getElementById('connect-section').style.display = 'block';
+  }
+}
+
+async function refreshData() {
+  if (!DATA) return;
+  await connectAndLoad();
+}
+
+function showError(msg) {
+  document.getElementById('connect-error').textContent = msg;
+}
+
+function clearFilters() {
+  document.getElementById('filter-class').value = '';
+  document.getElementById('filter-teacher').value = '';
+  document.getElementById('filter-from').value = '';
+  document.getElementById('filter-to').value = '';
+  renderDashboard();
+}
+
+function populateFilters() {
+  if (!DATA) return;
+  // Classes
+  const classNames = [...new Set(DATA.records.map(r => r.className))].sort();
+  document.getElementById('filter-class').innerHTML =
+    '<option value="">Todas las clases</option>' +
+    classNames.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+
+  // Teachers
+  const teachers = [...new Set(DATA.records.map(r => r.facilitador).filter(Boolean))].sort();
+  document.getElementById('filter-teacher').innerHTML =
+    '<option value="">Todos los docentes</option>' +
+    teachers.map(t => `<option value="${esc(t)}">${esc(t)}</option>`).join('');
+}
+
+function getFilteredRecords() {
+  if (!DATA) return [];
+  let recs = DATA.records;
+
+  const fc = document.getElementById('filter-class').value;
+  const ft = document.getElementById('filter-teacher').value;
+  const from = document.getElementById('filter-from').value;
+  const to = document.getElementById('filter-to').value;
+
+  if (fc) recs = recs.filter(r => r.className === fc);
+  if (ft) recs = recs.filter(r => r.facilitador === ft);
+  if (from) recs = recs.filter(r => r.date >= from);
+  if (to) recs = recs.filter(r => r.date <= to);
+
+  return recs;
+}
+
+function renderDashboard() {
+  if (!DATA) return;
+  const recs = getFilteredRecords();
+
+  // ── Aggregate into sessions (group by recordId) ──
+  const sessions = {};
+  recs.forEach(r => {
+    if (!sessions[r.recordId]) {
+      sessions[r.recordId] = {
+        recordId: r.recordId, classId: r.classId, className: r.className,
+        date: r.date, eventName: r.eventName, slotLabel: r.slotLabel,
+        facilitador: r.facilitador, present: 0, absent: 0, grade: ''
+      };
+    }
+    if (r.estado === 'Ausente') sessions[r.recordId].absent++;
+    else sessions[r.recordId].present++;
+  });
+  const sessionList = Object.values(sessions).sort((a, b) => b.date.localeCompare(a.date));
+
+  // ── KPIs ──
+  const totalSessions = sessionList.length;
+  const totalPresent = sessionList.reduce((s, r) => s + r.present, 0);
+  const totalAbsent = sessionList.reduce((s, r) => s + r.absent, 0);
+  const totalAll = totalPresent + totalAbsent;
+  const rate = totalAll ? Math.round(totalPresent / totalAll * 100) : 0;
+  const activeClasses = new Set(sessionList.map(s => s.className)).size;
+
+  // Alerts: students with 3+ absences
+  const stuAbs = {};
+  recs.forEach(r => {
+    if (r.estado !== 'Ausente') return;
+    const key = r.simat || (r.apellido1 + '_' + r.nombre1);
+    if (!stuAbs[key]) {
+      stuAbs[key] = {
+        simat: r.simat, nombre: [r.nombre1, r.nombre2].filter(Boolean).join(' '),
+        apellidos: [r.apellido1, r.apellido2].filter(Boolean).join(' '),
+        className: r.className, grade: '', count: 0, lastDate: ''
+      };
+    }
+    stuAbs[key].count++;
+    if (r.date > stuAbs[key].lastDate) stuAbs[key].lastDate = r.date;
+    if (r.className && !stuAbs[key].className) stuAbs[key].className = r.className;
+  });
+  const alerts = Object.values(stuAbs).filter(s => s.count >= 3).sort((a, b) => b.count - a.count);
+
+  document.getElementById('kpi-records').textContent = totalSessions;
+  document.getElementById('kpi-rate').textContent = totalAll ? rate + '%' : '—';
+  document.getElementById('kpi-classes').textContent = activeClasses;
+  document.getElementById('kpi-alerts').textContent = alerts.length;
+
+  // ── Chart: absences by class ──
+  const byClass = {};
+  sessionList.forEach(s => {
+    if (!byClass[s.className]) byClass[s.className] = { present: 0, absent: 0 };
+    byClass[s.className].present += s.present;
+    byClass[s.className].absent += s.absent;
+  });
+  const classEntries = Object.entries(byClass).sort((a, b) => b[1].absent - a[1].absent);
+  const maxClassAbs = classEntries.length ? classEntries[0][1].absent : 1;
+
+  document.getElementById('chart-by-class').innerHTML = classEntries.length
+    ? '<div class="bar-chart">' + classEntries.map(([name, d]) => {
+        const pct = Math.round(d.absent / Math.max(maxClassAbs, 1) * 100);
+        const total = d.present + d.absent;
+        const absPct = total ? Math.round(d.absent / total * 100) : 0;
+        return `<div class="bar-row">
+          <div class="bar-label" title="${esc(name)}">${esc(name)}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${absPct > 20 ? 'var(--rojo)' : absPct > 10 ? 'var(--naranja)' : 'var(--amarillo)'}"></div></div>
+          <div class="bar-val">${d.absent} (${absPct}%)</div>
+        </div>`;
+      }).join('') + '</div>'
+    : '<div class="empty-msg">Sin datos</div>';
+
+  // ── Chart: records by teacher ──
+  const byTeacher = {};
+  sessionList.forEach(s => {
+    const t = s.facilitador || '(sin nombre)';
+    byTeacher[t] = (byTeacher[t] || 0) + 1;
+  });
+  const teacherEntries = Object.entries(byTeacher).sort((a, b) => b[1] - a[1]);
+  const maxTeacher = teacherEntries.length ? teacherEntries[0][1] : 1;
+
+  document.getElementById('chart-by-teacher').innerHTML = teacherEntries.length
+    ? '<div class="bar-chart">' + teacherEntries.map(([name, count]) => {
+        const pct = Math.round(count / Math.max(maxTeacher, 1) * 100);
+        return `<div class="bar-row">
+          <div class="bar-label" title="${esc(name)}">${esc(name)}</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--azul)"></div></div>
+          <div class="bar-val">${count}</div>
+        </div>`;
+      }).join('') + '</div>'
+    : '<div class="empty-msg">Sin datos</div>';
+
+  // ── Alerts table ──
+  const atb = document.getElementById('alerts-tbody');
+  if (alerts.length) {
+    document.getElementById('alerts-card').style.display = 'block';
+    atb.innerHTML = alerts.map(a => {
+      const badgeCls = a.count >= 5 ? 'badge-red' : 'badge-orange';
+      return `<tr>
+        <td><strong>${esc(a.apellidos)}</strong>, ${esc(a.nombre)}</td>
+        <td>${esc(a.simat)}</td>
+        <td>${esc(a.className)}</td>
+        <td>${esc(a.grade)}</td>
+        <td><span class="badge ${badgeCls}">${a.count}</span></td>
+        <td>${a.lastDate ? fmtDate(a.lastDate) : ''}</td>
+      </tr>`;
+    }).join('');
+  } else {
+    document.getElementById('alerts-card').style.display = 'none';
+  }
+
+  // ── Records table ──
+  const rtb = document.getElementById('records-tbody');
+  rtb.innerHTML = sessionList.length
+    ? sessionList.map(s => {
+        const total = s.present + s.absent;
+        const pct = total ? Math.round(s.present / total * 100) : 0;
+        const badgeCls = pct >= 90 ? 'badge-green' : pct >= 75 ? 'badge-orange' : 'badge-red';
+        return `<tr>
+          <td>${fmtDate(s.date)}</td>
+          <td>${esc(s.className)}</td>
+          <td>${esc(s.grade)}</td>
+          <td>${esc(s.eventName)}</td>
+          <td>${esc(s.slotLabel)}</td>
+          <td>${esc(s.facilitador)}</td>
+          <td style="color:var(--verde);font-weight:700">${s.present}</td>
+          <td style="color:var(--rojo);font-weight:700">${s.absent}</td>
+          <td><span class="badge ${badgeCls}">${pct}%</span></td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="9" class="empty-msg">Sin registros</td></tr>';
+
+  // Last updated
+  document.getElementById('last-updated').textContent = 'Actualizado: ' + new Date().toLocaleString('es-CO');
+}
+
+// ── Helpers ──
+function esc(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = String(iso).split('-');
+  const months = ['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return parseInt(d) + ' ' + (months[parseInt(m)] || m) + ' ' + y;
+}
+</script>
+</body>
+</html>
