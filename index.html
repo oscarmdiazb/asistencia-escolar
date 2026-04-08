@@ -1314,9 +1314,7 @@ function renderHome() {
   // Cloud buttons on home
   const cbEl = document.getElementById('cloud-buttons');
   if (cbEl) {
-    if (!getScriptUrl()) {
-      cbEl.innerHTML = '';
-    } else if (S.cloud.role === 'coordinator') {
+    if (S.cloud.role === 'coordinator') {
       cbEl.innerHTML = '<button class="btn bn" onclick="openPublish()" style="margin-top:2px">☁️ Publicar al Colegio</button>';
     } else if (S.cloud.role === 'teacher' && S.cloud.schoolCode) {
       cbEl.innerHTML = '<button class="btn bn" onclick="openConnect()" style="margin-top:2px">☁️ Conectado: ' + esc(S.cloud.schoolCode) + '</button>';
