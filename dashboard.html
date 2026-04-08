@@ -302,7 +302,7 @@ function renderDashboard() {
       sessions[r.recordId] = {
         recordId: r.recordId, classId: r.classId, className: r.className,
         date: r.date, eventName: r.eventName, slotLabel: r.slotLabel,
-        facilitador: r.facilitador, present: 0, absent: 0, grade: ''
+        facilitador: r.facilitador, present: 0, absent: 0, grade: r.grade || '', sede: r.sede || '', jornada: r.jornada || ''
       };
     }
     if (r.estado === 'Ausente') sessions[r.recordId].absent++;
@@ -327,7 +327,7 @@ function renderDashboard() {
       stuAbs[key] = {
         simat: r.simat, nombre: [r.nombre1, r.nombre2].filter(Boolean).join(' '),
         apellidos: [r.apellido1, r.apellido2].filter(Boolean).join(' '),
-        className: r.className, grade: '', count: 0, lastDate: ''
+        className: r.className, grade: r.grade || '', count: 0, lastDate: ''
       };
     }
     stuAbs[key].count++;
