@@ -908,6 +908,7 @@ function load() {
   if (!S.profile.idInstitucion) S.profile.idInstitucion = '';
   if (!S.cloud) S.cloud = {};
   if (!S.syncQueue) S.syncQueue = [];
+  if (!S.favorites) S.favorites = [];
 }
 
 function save() {
@@ -1018,6 +1019,8 @@ async function cloudFetchClasses() {
       existing.students = students;
       existing.name = cc.name;
       existing.school = cc.school;
+      existing.sede = cc.sede || '';
+      existing.jornada = cc.jornada || '';
       existing.grade = cc.grade;
       existing.aula = cc.aula;
       existing.cloudClassId = cc.classId;
@@ -1031,6 +1034,8 @@ async function cloudFetchClasses() {
         cloudClassId: cc.classId,
         name: cc.name,
         school: cc.school,
+        sede: cc.sede || '',
+        jornada: cc.jornada || '',
         grade: cc.grade,
         aula: cc.aula,
         students: students,
@@ -1066,6 +1071,9 @@ async function syncRecordToCloud(rec) {
       recordId: rec.id,
       classId: rec.classId,
       className: cls.name,
+      sede: cls.sede || '',
+      jornada: cls.jornada || '',
+      grade: cls.grade || '',
       date: rec.date,
       eventName: evName ? evName.name : rec.eventId,
       slotLabel: rec.slotLabel || '',
@@ -1467,24 +1475,50 @@ function startFlow() {
   go('sel-cls');
 }
 
+function toggleFav(e, id) {
+  e.stopPropagation();
+  const idx = S.favorites.indexOf(id);
+  if (idx >= 0) S.favorites.splice(idx, 1); else S.favorites.push(id);
+  save();
+  renderAttClsList();
+}
+
 function renderAttClsList() {
   const el=document.getElementById('att-cls-list');
   if(!S.classes.length){el.innerHTML='<div class="empty"><div class="ei">📚</div><h3>Sin clases</h3></div>';return;}
   const t=todayISO();
-  el.innerHTML=S.classes.map(cls=>{
+  // Sort: favorites first, then alphabetical
+  const sorted = [...S.classes].sort((a, b) => {
+    const af = S.favorites.includes(a.id) ? 0 : 1;
+    const bf = S.favorites.includes(b.id) ? 0 : 1;
+    if (af !== bf) return af - bf;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+  const hasFavs = sorted.some(c => S.favorites.includes(c.id));
+  let html = '';
+  let inFavSection = true;
+  sorted.forEach(cls => {
+    const isFav = S.favorites.includes(cls.id);
+    // Add separator when transitioning from favs to non-favs
+    if (hasFavs && inFavSection && !isFav) {
+      html += `<div style="padding:6px 12px;font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;font-family:var(--fh);font-weight:700;border-top:2px solid var(--border);margin-top:4px">Otras clases</div>`;
+      inFavSection = false;
+    }
     const d=dot(cls);
     const hasToday=S.records.some(r=>r.classId===cls.id&&r.date===t);
     const recCnt=S.records.filter(r=>r.classId===cls.id&&r.date===t).length;
-    return `<div class="class-item" onclick="selectCls('${cls.id}')">
-      <div class="cdot ${d}"></div>
+    const meta = [cls.sede, cls.jornada, cls.grade ? 'Grado ' + cls.grade : '', cls.aula ? 'Aula ' + cls.aula : ''].filter(Boolean).join(' · ');
+    html += `<div class="class-item" onclick="selectCls('${cls.id}')">
+      <button onclick="toggleFav(event,'${cls.id}')" style="background:none;border:none;font-size:1.1rem;cursor:pointer;padding:4px;flex-shrink:0">${isFav ? '⭐' : '☆'}</button>
       <div class="ci">
-        <div class="cn">${esc(cls.name)}</div>
-        <div class="cm">${esc(cls.school||'')}${cls.grade?(cls.school?' · ':'')+' Grado '+cls.grade:''}${cls.aula?' · Aula '+cls.aula:''} · ${cls.students.length} est.</div>
+        <div class="cn">${cls.source === 'cloud' ? '<span style="color:var(--azul);font-size:.8em">☁️</span> ' : ''}${esc(cls.name)}</div>
+        <div class="cm">${esc(meta)} · ${cls.students.length} est.</div>
       </div>
       ${hasToday?`<span class="tag-azul">✓ ${recCnt} hoy</span>`:''}
       <span style="color:#CCC;margin-left:6px">›</span>
     </div>`;
-  }).join('');
+  });
+  el.innerHTML = html;
 }
 
 /* ═══════════════════════════════════
@@ -1717,7 +1751,7 @@ function renderManage() {
       <div class="cdot ${d}"></div>
       <div class="ci">
         <div class="cn">${isCloud ? '<span style="color:var(--azul);font-size:.8em">☁️</span> ' : ''}${esc(cls.name)}</div>
-        <div class="cm">${esc(cls.school||'')}${cls.grade?(cls.school?' · ':'')+' Grado '+cls.grade:''}${cls.aula?' · Aula '+cls.aula:''}</div>
+        <div class="cm">${esc([cls.school, cls.sede, cls.jornada, cls.grade ? 'Grado ' + cls.grade : '', cls.aula ? 'Aula ' + cls.aula : ''].filter(Boolean).join(' · '))}</div>
       </div>
       <div class="cbadge">${cls.students.length} est.</div>
       <div class="cbadge" style="background:#EEF5FF;color:var(--azul)">${rc} reg.</div>

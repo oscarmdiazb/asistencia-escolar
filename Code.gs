@@ -16,13 +16,30 @@
  *   POST action=pushAttendance     → teacher syncs attendance record
  */
 
+// Column layout constants
+var CLASES_HEADERS = [
+  'classId', 'className', 'school', 'sede', 'jornada', 'grade', 'aula',
+  'simat', 'apellido1', 'apellido2', 'nombre1', 'nombre2',
+  'publishedAt', 'version'
+];
+// Indices for Clases tab (0-based)
+var CL = { id:0, name:1, school:2, sede:3, jornada:4, grade:5, aula:6,
+           simat:7, ap1:8, ap2:9, n1:10, n2:11, pub:12, ver:13 };
+
+var ASIST_HEADERS = [
+  'recordId', 'classId', 'className', 'sede', 'jornada', 'grade',
+  'date', 'eventName', 'slotLabel',
+  'simat', 'apellido1', 'apellido2', 'nombre1', 'nombre2', 'estado',
+  'facilitador', 'facilitadorId', 'facilitadorRol', 'savedAt', 'syncedAt'
+];
+
 // ═══════════════════════════════════
 // ROUTING
 // ═══════════════════════════════════
 
 function doGet(e) {
   try {
-    const action = (e.parameter.action || '').toLowerCase();
+    var action = (e.parameter.action || '').toLowerCase();
     switch (action) {
       case 'ping':         return json(handlePing());
       case 'getclasses':   return json(handleGetClasses());
@@ -36,9 +53,9 @@ function doGet(e) {
 
 function doPost(e) {
   try {
-    const raw = e.postData ? e.postData.contents : '{}';
-    const body = JSON.parse(raw);
-    const action = (body.action || '').toLowerCase();
+    var raw = e.postData ? e.postData.contents : '{}';
+    var body = JSON.parse(raw);
+    var action = (body.action || '').toLowerCase();
     switch (action) {
       case 'pushclasses':    return json(handlePushClasses(body));
       case 'pushattendance': return json(handlePushAttendance(body));
@@ -59,26 +76,25 @@ function json(obj) {
 // HELPERS
 // ═══════════════════════════════════
 
-/** Always returns this Sheet — no lookup needed */
 function getSheet() {
   return SpreadsheetApp.getActiveSpreadsheet();
 }
 
 function getConfig() {
-  const ss = getSheet();
-  const sheet = ss.getSheetByName('Config');
+  var ss = getSheet();
+  var sheet = ss.getSheetByName('Config');
   if (!sheet) return {};
-  const data = sheet.getDataRange().getValues();
-  const cfg = {};
-  for (let i = 0; i < data.length; i++) {
+  var data = sheet.getDataRange().getValues();
+  var cfg = {};
+  for (var i = 0; i < data.length; i++) {
     if (data[i][0]) cfg[String(data[i][0]).trim()] = data[i][1];
   }
   return cfg;
 }
 
 function ensureTab(name, headers) {
-  const ss = getSheet();
-  let sheet = ss.getSheetByName(name);
+  var ss = getSheet();
+  var sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
     sheet.appendRow(headers);
@@ -89,20 +105,20 @@ function ensureTab(name, headers) {
 }
 
 // ═══════════════════════════════════
-// CUSTOM MENU (appears when Sheet opens)
+// CUSTOM MENU
 // ═══════════════════════════════════
 
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('AulaPresente')
     .addItem('Verificar configuración', 'checkConfig')
-    .addItem('Ver URL del script', 'showScriptUrl')
+    .addItem('Ver instrucciones de despliegue', 'showDeployHelp')
     .addToUi();
 }
 
 function checkConfig() {
-  const cfg = getConfig();
-  const ui = SpreadsheetApp.getUi();
+  var cfg = getConfig();
+  var ui = SpreadsheetApp.getUi();
   if (!cfg.schoolName || !cfg.schoolCode) {
     ui.alert('⚠️ Configuración incompleta',
       'Llena las celdas schoolName y schoolCode en la pestaña Config.',
@@ -115,15 +131,16 @@ function checkConfig() {
   }
 }
 
-function showScriptUrl() {
-  const ui = SpreadsheetApp.getUi();
-  ui.alert('Instrucciones',
-    'Para obtener la URL del script:\n\n' +
-    '1. Ve a Extensions → Apps Script\n' +
-    '2. Click en Deploy → Manage deployments\n' +
-    '3. Copia la URL del Web app\n' +
-    '4. Pégala en AulaPresente al configurar el colegio',
-    ui.ButtonSet.OK);
+function showDeployHelp() {
+  SpreadsheetApp.getUi().alert('Instrucciones de despliegue',
+    '1. Click en Deploy → New deployment\n' +
+    '2. Tipo: Web app\n' +
+    '3. Execute as: Me\n' +
+    '4. Who has access: Anyone\n' +
+    '5. Click Deploy\n' +
+    '6. Copia la URL\n' +
+    '7. Comparte la URL con los docentes',
+    SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
 // ═══════════════════════════════════
@@ -131,15 +148,11 @@ function showScriptUrl() {
 // ═══════════════════════════════════
 
 function handlePing() {
-  const cfg = getConfig();
+  var cfg = getConfig();
   if (!cfg.schoolName && !cfg.schoolCode) {
     return { ok: false, error: 'Hoja no configurada. Llena la pestaña Config.' };
   }
-  return {
-    ok: true,
-    schoolName: cfg.schoolName || '',
-    schoolCode: cfg.schoolCode || ''
-  };
+  return { ok: true, schoolName: cfg.schoolName || '', schoolCode: cfg.schoolCode || '' };
 }
 
 // ═══════════════════════════════════
@@ -147,39 +160,38 @@ function handlePing() {
 // ═══════════════════════════════════
 
 function handleGetClasses() {
-  const ss = getSheet();
-  const sheet = ss.getSheetByName('Clases');
-  if (!sheet || sheet.getLastRow() < 2) {
-    return { ok: true, classes: [] };
-  }
+  var ss = getSheet();
+  var sheet = ss.getSheetByName('Clases');
+  if (!sheet || sheet.getLastRow() < 2) return { ok: true, classes: [] };
 
-  const data = sheet.getDataRange().getValues();
-  const rows = data.slice(1);
+  var data = sheet.getDataRange().getValues();
+  var rows = data.slice(1);
+  var classMap = {};
 
-  // Group by classId
-  const classMap = {};
-  rows.forEach(row => {
-    const classId = String(row[0] || '').trim();
+  rows.forEach(function(row) {
+    var classId = String(row[CL.id] || '').trim();
     if (!classId) return;
     if (!classMap[classId]) {
       classMap[classId] = {
         classId: classId,
-        name: row[1] || classId,
-        school: row[2] || '',
-        grade: String(row[3] || ''),
-        aula: row[4] || '',
-        version: row[11] || 1,
+        name: row[CL.name] || classId,
+        school: row[CL.school] || '',
+        sede: row[CL.sede] || '',
+        jornada: row[CL.jornada] || '',
+        grade: String(row[CL.grade] || ''),
+        aula: row[CL.aula] || '',
+        version: row[CL.ver] || 1,
         students: []
       };
     }
-    const simat = String(row[5] || '').trim();
+    var simat = String(row[CL.simat] || '').trim();
     if (simat) {
       classMap[classId].students.push({
         simat: simat,
-        apellido1: row[6] || '',
-        apellido2: row[7] || '',
-        nombre1: row[8] || '',
-        nombre2: row[9] || ''
+        apellido1: row[CL.ap1] || '',
+        apellido2: row[CL.ap2] || '',
+        nombre1: row[CL.n1] || '',
+        nombre2: row[CL.n2] || ''
       });
     }
   });
@@ -192,34 +204,27 @@ function handleGetClasses() {
 // ═══════════════════════════════════
 
 function handleGetDashboard() {
-  const cfg = getConfig();
-  const classResult = handleGetClasses();
-  const classes = classResult.classes || [];
+  var cfg = getConfig();
+  var classResult = handleGetClasses();
+  var classes = classResult.classes || [];
 
-  const ss = getSheet();
-  const attSheet = ss.getSheetByName('Asistencia');
-  const records = [];
+  var ss = getSheet();
+  var attSheet = ss.getSheetByName('Asistencia');
+  var records = [];
   if (attSheet && attSheet.getLastRow() >= 2) {
-    const data = attSheet.getDataRange().getValues();
-    data.slice(1).forEach(row => {
+    var data = attSheet.getDataRange().getValues();
+    data.slice(1).forEach(function(row) {
       records.push({
-        recordId: row[0],
-        classId: row[1],
-        className: row[2],
-        date: row[3],
-        eventName: row[4],
-        slotLabel: row[5],
-        simat: String(row[6] || ''),
-        apellido1: row[7] || '',
-        apellido2: row[8] || '',
-        nombre1: row[9] || '',
-        nombre2: row[10] || '',
-        estado: row[11],
-        facilitador: row[12] || '',
-        facilitadorId: row[13] || '',
-        facilitadorRol: row[14] || '',
-        savedAt: row[15] || '',
-        syncedAt: row[16] || ''
+        recordId: row[0],  classId: row[1],   className: row[2],
+        sede: row[3],      jornada: row[4],   grade: row[5],
+        date: row[6],      eventName: row[7], slotLabel: row[8],
+        simat: String(row[9] || ''),
+        apellido1: row[10] || '', apellido2: row[11] || '',
+        nombre1: row[12] || '',   nombre2: row[13] || '',
+        estado: row[14],
+        facilitador: row[15] || '', facilitadorId: row[16] || '',
+        facilitadorRol: row[17] || '',
+        savedAt: row[18] || '',     syncedAt: row[19] || ''
       });
     });
   }
@@ -238,34 +243,26 @@ function handleGetDashboard() {
 // ═══════════════════════════════════
 
 function handlePushClasses(body) {
-  const classes = body.classes;
+  var classes = body.classes;
   if (!Array.isArray(classes) || classes.length === 0) {
     return { ok: false, error: 'No hay clases para publicar' };
   }
 
-  const sheet = ensureTab('Clases', [
-    'classId', 'className', 'school', 'grade', 'aula',
-    'simat', 'apellido1', 'apellido2', 'nombre1', 'nombre2',
-    'publishedAt', 'version'
-  ]);
+  var sheet = ensureTab('Clases', CLASES_HEADERS);
+  var now = new Date().toISOString();
+  var studentsWritten = 0;
 
-  const now = new Date().toISOString();
-  let studentsWritten = 0;
-
-  classes.forEach(cls => {
-    // Delete existing rows for this classId (bottom to top)
-    const data = sheet.getDataRange().getValues();
-    for (let i = data.length - 1; i >= 1; i--) {
-      if (String(data[i][0]) === String(cls.classId)) {
-        sheet.deleteRow(i + 1);
-      }
+  classes.forEach(function(cls) {
+    var data = sheet.getDataRange().getValues();
+    for (var i = data.length - 1; i >= 1; i--) {
+      if (String(data[i][0]) === String(cls.classId)) sheet.deleteRow(i + 1);
     }
-
-    const version = (cls.version || 0) + 1;
+    var version = (cls.version || 0) + 1;
     if (Array.isArray(cls.students)) {
-      cls.students.forEach(s => {
+      cls.students.forEach(function(s) {
         sheet.appendRow([
-          cls.classId, cls.name, cls.school || '', cls.grade || '', cls.aula || '',
+          cls.classId, cls.name, cls.school || '', cls.sede || '', cls.jornada || '',
+          cls.grade || '', cls.aula || '',
           s.simat || '', s.apellido1 || '', s.apellido2 || '', s.nombre1 || '', s.nombre2 || '',
           now, version
         ]);
@@ -282,32 +279,23 @@ function handlePushClasses(body) {
 // ═══════════════════════════════════
 
 function handlePushAttendance(body) {
-  const sheet = ensureTab('Asistencia', [
-    'recordId', 'classId', 'className', 'date', 'eventName', 'slotLabel',
-    'simat', 'apellido1', 'apellido2', 'nombre1', 'nombre2', 'estado',
-    'facilitador', 'facilitadorId', 'facilitadorRol', 'savedAt', 'syncedAt'
-  ]);
+  var sheet = ensureTab('Asistencia', ASIST_HEADERS);
+  var record = body.record;
+  if (!record || !record.recordId) return { ok: false, error: 'Registro inválido' };
 
-  const record = body.record;
-  if (!record || !record.recordId) {
-    return { ok: false, error: 'Registro inválido' };
+  var data = sheet.getDataRange().getValues();
+  for (var i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][0]) === String(record.recordId)) sheet.deleteRow(i + 1);
   }
 
-  // Delete existing rows with same recordId (idempotent)
-  const data = sheet.getDataRange().getValues();
-  for (let i = data.length - 1; i >= 1; i--) {
-    if (String(data[i][0]) === String(record.recordId)) {
-      sheet.deleteRow(i + 1);
-    }
-  }
-
-  const now = new Date().toISOString();
-  let rowsWritten = 0;
+  var now = new Date().toISOString();
+  var rowsWritten = 0;
 
   if (Array.isArray(record.students)) {
-    record.students.forEach(s => {
+    record.students.forEach(function(s) {
       sheet.appendRow([
         record.recordId, record.classId, record.className || '',
+        record.sede || '', record.jornada || '', record.grade || '',
         record.date, record.eventName || '', record.slotLabel || '',
         s.simat || '', s.apellido1 || '', s.apellido2 || '',
         s.nombre1 || '', s.nombre2 || '', s.estado,
