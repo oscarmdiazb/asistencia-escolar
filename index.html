@@ -642,15 +642,8 @@
           <input class="fi" id="p-id" type="text" inputmode="numeric" placeholder="Cédula o número asignado por el equipo" autocomplete="off">
           <div class="fhint">Número de cédula de ciudadanía o código asignado por el equipo.</div>
         </div>
-        <div class="fg">
-          <label class="fl">Institución / Colegio <span class="req">*</span></label>
-          <input class="fi" id="p-inst" type="text" placeholder="Ej: IED República de Bolivia" autocomplete="organization">
-        </div>
-        <div class="fg">
-          <label class="fl">ID de la institución <span class="req">*</span></label>
-          <input class="fi" id="p-id-inst" type="text" inputmode="numeric" placeholder="Código DANE o número asignado" autocomplete="off">
-          <div class="fhint">Código DANE del colegio (ej: 11001012345) o número asignado por el equipo.</div>
-        </div>
+        <input type="hidden" id="p-inst" value="">
+        <input type="hidden" id="p-id-inst" value="">
         <div class="fg">
           <label class="fl">Tu rol</label>
           <select class="fsel" id="p-rol" onchange="toggleRolOtro()">
@@ -2488,8 +2481,7 @@ function saveProfile() {
   }
   if (!nombre)     { toast('Tu nombre es obligatorio', 'err'); return; }
   if (!idPersonal) { toast('Tu ID es obligatorio', 'err'); return; }
-  if (!inst)       { toast('La institución es obligatoria', 'err'); return; }
-  if (!idInst)     { toast('El ID de la institución es obligatorio', 'err'); return; }
+  // Institution fields are optional — auto-filled when connected to a school
   S.profile = { ...S.profile, nombre, idPersonal, institucion: inst, idInstitucion: idInst, rol };
   save();
   renderHome();
