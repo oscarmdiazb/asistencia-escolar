@@ -1,6 +1,15 @@
 # Presentaciones (archivos locales, no subir al repo)
 presentaciones/
 
+# Datos reales de SIMAT — contienen información personal de estudiantes, NUNCA subir
+data/
+*.xlsx
+!ejemplo_*.xlsx
+
+# Claude Code / Cowork local settings
+.claude/settings.local.json
+.claude/commands/
+
 # Archivos auxiliares de LaTeX
 *.aux
 *.log

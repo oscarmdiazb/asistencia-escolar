@@ -120,13 +120,14 @@
     .stu-tile:last-child{border-bottom:none}
     .stu-tile:active{background:var(--bg)}
     .stu-tile.aus .sname{color:var(--text2)}
+    .stu-tile.tar .sname{color:#7A5C00}
     .snum{font-size:.72rem;color:var(--text2);width:22px;flex-shrink:0;font-family:var(--fh);font-weight:700}
     .sinfo{flex:1;min-width:0}
     .sname{font-family:var(--fh);font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ssimat{font-size:.7rem;color:var(--text2);margin-top:1px}
     .schip{font-family:var(--fh);font-weight:700;font-size:.7rem;padding:4px 10px;border-radius:20px;
       color:white;flex-shrink:0;text-transform:uppercase;letter-spacing:.03em;transition:background .15s}
-    .cp{background:var(--verde)}.ca{background:var(--rojo)}
+    .cp{background:var(--verde)}.ca{background:var(--rojo)}.cl{background:var(--amarillo);color:#5A4400}
 
     /* ── Attendance header ── */
     .att-hdr{background:var(--white);padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -135,6 +136,7 @@
     .att-evt{font-size:.78rem;color:var(--azul);font-weight:700;margin-top:2px}
     .att-ctr{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:.8rem;font-family:var(--fh);font-weight:700}
     .ctr-chip{background:var(--rojo);color:white;border-radius:20px;padding:2px 8px;font-size:.75rem}
+    .ctr-chip-l{background:var(--amarillo);color:#5A4400;border-radius:20px;padding:2px 8px;font-size:.75rem}
     .alert-banner{background:#FFF3CD;border-left:4px solid var(--amarillo);padding:8px 16px;
       font-size:.8rem;font-weight:600;color:#7A5C00;flex-shrink:0}
 
@@ -405,7 +407,7 @@
     <div class="att-hdr" id="att-hdr"></div>
     <div id="att-alert" class="alert-banner" style="display:none">⚠️ Ya existe un registro para esta sesión — será reemplazado al guardar.</div>
     <div class="content" style="padding-top:8px">
-      <p class="screen-hint" style="margin:8px 14px 8px">Toca el nombre de un estudiante para marcarlo como <strong style="color:var(--rojo)">AUSENTE</strong>. Los que no toques quedan como <strong style="color:var(--verde)">PRESENTES</strong>. Al terminar, toca Guardar.</p>
+      <p class="screen-hint" style="margin:8px 14px 8px">Toca el nombre de un estudiante para cambiar su estado: <strong style="color:var(--verde)">PRESENTE</strong> → <strong style="color:var(--rojo)">AUSENTE</strong> → <strong style="color:#7A5C00">TARDE</strong> → presente de nuevo. Al terminar, toca Guardar.</p>
       <div class="card" id="stu-list"></div>
     </div>
     <div class="bottom-bar">
@@ -425,7 +427,38 @@
     <div class="content nb">
       <p class="screen-hint">Aquí creas y administras tus grupos. Toca una clase para editarla o agregar estudiantes. Usa el botón 📤 para compartir la lista con otro docente.</p>
       <div id="manage-cloud-bar"></div>
+      <button class="btn bs btn-sm" onclick="openImportSimat()" style="width:100%;margin-bottom:10px">📥 Importar lista desde SIMAT (.xlsx)</button>
       <div class="card" id="manage-list"></div>
+    </div>
+  </div>
+
+  <!-- ══ IMPORT FROM SIMAT ══════════════════════════ -->
+  <div id="screen-import-simat" class="screen">
+    <div class="rb"></div>
+    <div class="topbar">
+      <button class="btn-icon" onclick="back()">←</button>
+      <div class="tb-title">Importar desde SIMAT</div>
+    </div>
+    <div class="content">
+      <p class="screen-hint">Sube el archivo Excel (.xlsx) que exporta SIMAT tal cual lo entrega el colegio o la SED. La app creará una clase por GRUPO, con los estudiantes MATRICULADOS.</p>
+
+      <div class="card cb" id="simat-upload-card">
+        <label class="btn bp" style="cursor:pointer;text-align:center;display:block;margin:0">
+          📁 Seleccionar archivo SIMAT (.xlsx)
+          <input type="file" id="simat-file" accept=".xlsx,.xls" style="display:none" onchange="handleSimatFile(event)">
+        </label>
+        <div class="fhint" style="margin-top:8px">
+          Se usarán las columnas: <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">INSTITUCION, SEDE, JORNADA, GRADO_COD, GRUPO, ESTADO, DOC, APELLIDO1, APELLIDO2, NOMBRE1, NOMBRE2</code>.
+          El archivo no se sube a ningún servidor — se procesa en tu dispositivo.
+        </div>
+      </div>
+
+      <div class="card cb" id="simat-loading" style="display:none;text-align:center;padding:24px">
+        <div style="font-size:2rem">⏳</div>
+        <div style="margin-top:8px;font-weight:700" id="simat-loading-msg">Procesando archivo…</div>
+      </div>
+
+      <div id="simat-result" style="display:none"></div>
     </div>
   </div>
 
@@ -630,9 +663,6 @@
         <p style="font-size:.85rem;color:var(--text2);margin-bottom:14px;line-height:1.5">
           Esta información aparecerá en todos tus registros de asistencia.
         </p>
-        <div style="background:#EEF8EE;border:1.5px solid var(--verde);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:.8rem;line-height:1.55;color:#2A5C2A;">
-          🔒 <strong>Tus datos se guardan únicamente en este celular.</strong> Ningún servidor, empresa ni aplicación tiene acceso a ellos. Los registros de asistencia <em>nunca salen de tu dispositivo</em> a menos que tú mismo los exportes (por ejemplo, como CSV). Si cambias de celular o borras el historial del navegador, los datos se pierden, así que te recomendamos exportar regularmente.
-        </div>
         <div class="fg">
           <label class="fl">Tu nombre completo <span class="req">*</span></label>
           <input class="fi" id="p-nombre" type="text" placeholder="Ej: Ana Rodríguez Vargas" autocomplete="name">
@@ -876,7 +906,7 @@ let S = { classes:[], events:[], slots:[], records:[], profile:{}, cloud:{}, syn
 let stack = ['home'];
 
 // Session
-let sess = { classId:null, eventId:null, slotLabel:null, date:null, absent:new Set() };
+let sess = { classId:null, eventId:null, slotLabel:null, date:null, absent:new Set(), late:new Set() };
 
 // Class editor
 let edClsId = null;
@@ -903,6 +933,8 @@ function load() {
   if (!S.syncQueue) S.syncQueue = [];
   if (!S.favorites) S.favorites = [];
   if (!S.dismissedAlerts) S.dismissedAlerts = [];
+  // Backward-compat: ensure every record has lateIds (added in v3.1)
+  S.records.forEach(r => { if (!Array.isArray(r.lateIds)) r.lateIds = []; });
 }
 
 function save() {
@@ -1008,6 +1040,7 @@ async function cloudFetchClasses() {
         S.records.forEach(r => {
           if (r.classId !== existing.id) return;
           r.absentIds = r.absentIds.map(id => oldToNew[id] || id);
+          if (Array.isArray(r.lateIds)) r.lateIds = r.lateIds.map(id => oldToNew[id] || id);
         });
       }
       existing.students = students;
@@ -1081,7 +1114,9 @@ async function syncRecordToCloud(rec) {
         apellido2: s.apellido2 || '',
         nombre1: s.nombre1 || '',
         nombre2: s.nombre2 || '',
-        estado: rec.absentIds.includes(s.id) ? 'Ausente' : 'Presente'
+        estado: rec.absentIds.includes(s.id)
+          ? 'Ausente'
+          : ((rec.lateIds||[]).includes(s.id) ? 'Tarde' : 'Presente')
       }))
     }
   };
@@ -1653,11 +1688,13 @@ function initAttendance() {
   const cls=getCls(sess.classId);
   if(!cls)return;
   sess.absent=new Set();
+  sess.late=new Set();
 
   // Check existing record: classId + eventId + slotLabel + date (una sesión única por clase/evento/franja/día)
   const existing=S.records.find(r=>r.classId===sess.classId&&r.eventId===sess.eventId&&r.slotLabel===sess.slotLabel&&r.date===sess.date);
   if(existing){
     existing.absentIds.forEach(id=>sess.absent.add(id));
+    (existing.lateIds||[]).forEach(id=>{ sess.absent.delete(id); sess.late.add(id); });
     document.getElementById('att-alert').style.display='block';
   } else {
     document.getElementById('att-alert').style.display='none';
@@ -1669,13 +1706,24 @@ function initAttendance() {
     <div class="att-cls">${esc(cls.name)}</div>
     <div class="att-evt">${esc(evt?evt.name:'')} · ${esc(sess.slotLabel||'')}</div>
     <div class="att-ctr">
-      <span id="abs-cnt" class="ctr-chip">${sess.absent.size}</span>
-      ausentes de ${cls.students.length} estudiantes
+      <span id="abs-cnt" class="ctr-chip">${sess.absent.size}</span> ausentes
+      <span id="late-cnt" class="ctr-chip-l" style="margin-left:8px">${sess.late.size}</span> tarde
+      <span style="color:var(--text2);font-weight:600;margin-left:6px">de ${cls.students.length}</span>
     </div>`;
 
   renderStuList(cls);
   go('att');
 }
+
+// Get current attendance state for a student id: 'p' (presente), 'a' (ausente), 'l' (tarde)
+function attState(id){
+  if(sess.absent.has(id)) return 'a';
+  if(sess.late.has(id))   return 'l';
+  return 'p';
+}
+
+const ATT_LABEL = { p:'Presente', a:'Ausente', l:'Tarde' };
+const ATT_CHIP  = { p:'cp',       a:'ca',      l:'cl'    };
 
 function renderStuList(cls) {
   const el=document.getElementById('stu-list');
@@ -1685,26 +1733,38 @@ function renderStuList(cls) {
     return;
   }
   el.innerHTML=sorted.map((s,i)=>{
-    const ab=sess.absent.has(s.id);
-    return `<div class="stu-tile ${ab?'aus':''}" id="t-${s.id}" onclick="toggleAbs('${s.id}')">
+    const st=attState(s.id);
+    const tileCls = st==='a' ? 'aus' : (st==='l' ? 'tar' : '');
+    return `<div class="stu-tile ${tileCls}" id="t-${s.id}" onclick="toggleAbs('${s.id}')">
       <span class="snum">${i+1}</span>
       <div class="sinfo">
         <div class="sname">${esc(dname(s))}</div>
         <div class="ssimat">SIMAT: ${esc(s.simat||'—')}</div>
       </div>
-      <span class="schip ${ab?'ca':'cp'}" id="ch-${s.id}">${ab?'Ausente':'Presente'}</span>
+      <span class="schip ${ATT_CHIP[st]}" id="ch-${s.id}">${ATT_LABEL[st]}</span>
     </div>`;
   }).join('');
 }
 
+// Cycle attendance state: presente → ausente → tarde → presente
 function toggleAbs(id) {
-  if(sess.absent.has(id)) sess.absent.delete(id); else sess.absent.add(id);
-  const ab=sess.absent.has(id);
-  document.getElementById('t-'+id).classList.toggle('aus',ab);
+  const cur = attState(id);
+  const next = cur==='p' ? 'a' : (cur==='a' ? 'l' : 'p');
+  sess.absent.delete(id); sess.late.delete(id);
+  if(next==='a') sess.absent.add(id);
+  else if(next==='l') sess.late.add(id);
+
+  const tile=document.getElementById('t-'+id);
+  tile.classList.toggle('aus', next==='a');
+  tile.classList.toggle('tar', next==='l');
+
   const ch=document.getElementById('ch-'+id);
-  ch.classList.toggle('ca',ab); ch.classList.toggle('cp',!ab);
-  ch.textContent=ab?'Ausente':'Presente';
-  document.getElementById('abs-cnt').textContent=sess.absent.size;
+  ch.classList.remove('cp','ca','cl');
+  ch.classList.add(ATT_CHIP[next]);
+  ch.textContent = ATT_LABEL[next];
+
+  document.getElementById('abs-cnt').textContent  = sess.absent.size;
+  document.getElementById('late-cnt').textContent = sess.late.size;
 }
 
 function saveAttendance() {
@@ -1713,7 +1773,7 @@ function saveAttendance() {
   const rec={
     id: idx>=0?S.records[idx].id:genId('rec'),
     classId:sess.classId, eventId:sess.eventId, slotLabel:sess.slotLabel,
-    date:sess.date, absentIds:[...sess.absent], savedAt:new Date().toISOString(),
+    date:sess.date, absentIds:[...sess.absent], lateIds:[...sess.late], savedAt:new Date().toISOString(),
     facilitador: {
       nombre:        S.profile.nombre||'',
       idPersonal:    S.profile.idPersonal||'',
@@ -1938,6 +1998,300 @@ function confirmDelCls(id) {
 }
 
 /* ═══════════════════════════════════
+   SIMAT IMPORT (.xlsx)
+   ═══════════════════════════════════ */
+
+let _sheetJSLoaded = false;
+let _sheetJSLoading = null;
+let _simatParsed = null;  // { school, rows: [...], grados: {code: {count, matric}}, sedes, jornadas }
+
+const SIMAT_REQ_COLS = ['ESTADO','INSTITUCION','SEDE','JORNADA','GRADO_COD','GRUPO',
+                        'DOC','APELLIDO1','APELLIDO2','NOMBRE1','NOMBRE2'];
+
+function loadSheetJS() {
+  if (_sheetJSLoaded) return Promise.resolve();
+  if (_sheetJSLoading) return _sheetJSLoading;
+  _sheetJSLoading = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.mini.min.js';
+    s.onload  = () => { _sheetJSLoaded = true; resolve(); };
+    s.onerror = () => { _sheetJSLoading = null; reject(new Error('No se pudo cargar el lector de Excel. Verifica tu conexión a internet.')); };
+    document.head.appendChild(s);
+  });
+  return _sheetJSLoading;
+}
+
+function openImportSimat() {
+  _simatParsed = null;
+  document.getElementById('simat-result').style.display = 'none';
+  document.getElementById('simat-result').innerHTML = '';
+  document.getElementById('simat-loading').style.display = 'none';
+  document.getElementById('simat-upload-card').style.display = 'block';
+  const fi = document.getElementById('simat-file'); if (fi) fi.value = '';
+  go('import-simat');
+}
+
+function gradeLabel(g) {
+  const s = String(g == null ? '' : g).trim();
+  const map = { '-2':'Pre-jardín', '-1':'Jardín', '0':'Transición', '99':'Aceleración',
+                '26':'Ciclo 1 (adultos)', '27':'Ciclo 2 (adultos)', '28':'Ciclo 3 (adultos)',
+                '29':'Ciclo 4 (adultos)', '30':'Ciclo 5 (adultos)' };
+  if (map[s]) return map[s];
+  if (/^[0-9]+$/.test(s)) return 'Grado ' + s;
+  return s;
+}
+
+async function handleSimatFile(event) {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+
+  const loading = document.getElementById('simat-loading');
+  const uploadCard = document.getElementById('simat-upload-card');
+  const resultEl = document.getElementById('simat-result');
+  const msgEl = document.getElementById('simat-loading-msg');
+
+  uploadCard.style.display = 'none';
+  resultEl.style.display = 'none';
+  loading.style.display = 'block';
+
+  try {
+    msgEl.textContent = 'Cargando lector de Excel…';
+    await loadSheetJS();
+
+    msgEl.textContent = 'Leyendo archivo…';
+    const buf = await file.arrayBuffer();
+
+    msgEl.textContent = 'Procesando hoja…';
+    const wb = XLSX.read(buf, { type: 'array', cellDates: false });
+    // Preferir la hoja "total_data" (SIMAT estándar), sino la primera
+    const sheetName = wb.SheetNames.includes('total_data') ? 'total_data' : wb.SheetNames[0];
+    if (!sheetName) throw new Error('El archivo no tiene hojas.');
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
+    if (!rows.length) throw new Error('La hoja "' + sheetName + '" está vacía.');
+
+    // Validar columnas requeridas
+    const cols = Object.keys(rows[0]);
+    const missing = SIMAT_REQ_COLS.filter(c => !cols.includes(c));
+    if (missing.length) {
+      throw new Error('Faltan columnas en el archivo: ' + missing.join(', ') +
+        '.\n\nVerifica que estás subiendo el archivo original de SIMAT (no una versión modificada).');
+    }
+
+    // Agregar por grado
+    const grados = {};
+    const sedes = new Set();
+    const jornadas = new Set();
+    let school = '';
+    rows.forEach(r => {
+      const g = String(r['GRADO_COD'] == null ? '' : r['GRADO_COD']).trim();
+      const est = String(r['ESTADO'] || '').trim().toUpperCase();
+      if (!g) return;
+      if (!grados[g]) grados[g] = { count: 0, matric: 0 };
+      grados[g].count++;
+      if (est === 'MATRICULADO') grados[g].matric++;
+      if (r['SEDE']) sedes.add(String(r['SEDE']).trim());
+      if (r['JORNADA']) jornadas.add(String(r['JORNADA']).trim());
+      if (!school && r['INSTITUCION']) school = String(r['INSTITUCION']).trim();
+    });
+
+    _simatParsed = { rows, school, grados, sedes:[...sedes], jornadas:[...jornadas] };
+
+    loading.style.display = 'none';
+    renderSimatFilter();
+  } catch (err) {
+    loading.style.display = 'none';
+    uploadCard.style.display = 'block';
+    toast(err.message || 'Error al leer el archivo', 'err');
+  }
+}
+
+function renderSimatFilter() {
+  if (!_simatParsed) return;
+  const { school, grados, sedes, jornadas, rows } = _simatParsed;
+  const gradoKeys = Object.keys(grados).sort((a,b)=>{
+    const na = parseInt(a,10), nb = parseInt(b,10);
+    if (!isNaN(na) && !isNaN(nb)) return na - nb;
+    return String(a).localeCompare(String(b));
+  });
+
+  const rowsHTML = gradoKeys.map(g => {
+    const info = grados[g];
+    const label = gradeLabel(g);
+    return `<label class="class-item" style="cursor:pointer;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px">
+      <input type="checkbox" class="simat-grado-chk" value="${esc(g)}" style="width:18px;height:18px;margin:0" onchange="renderSimatPreview()">
+      <div style="flex:1">
+        <div class="cn">${esc(label)} <span style="color:var(--text2);font-weight:500;font-size:.85em">(GRADO_COD ${esc(g)})</span></div>
+        <div class="cm">${info.matric} matriculado(s) · ${info.count} total(es)</div>
+      </div>
+    </label>`;
+  }).join('');
+
+  const resultEl = document.getElementById('simat-result');
+  resultEl.innerHTML = `
+    <div class="card cb">
+      <div class="stitle" style="margin-top:0">📄 Archivo cargado</div>
+      <div style="font-size:.9rem"><strong>${esc(school || '—')}</strong></div>
+      <div class="fhint">${rows.length} estudiante(s) en total · ${sedes.length} sede(s) · ${jornadas.length} jornada(s)</div>
+    </div>
+
+    <div class="stitle">Selecciona los grados a importar</div>
+    <div class="card" style="padding:6px">${rowsHTML}</div>
+
+    <div class="card cb" style="margin-top:10px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="simat-only-matric" checked onchange="renderSimatPreview()" style="width:18px;height:18px;margin:0">
+        <span>Solo estudiantes con <strong>ESTADO = MATRICULADO</strong></span>
+      </label>
+      <div class="fhint" style="margin-top:4px">Desactiva esto si también quieres incluir estudiantes RETIRADOS, TRASLADADOS, etc.</div>
+    </div>
+
+    <div id="simat-preview" style="margin-top:12px"></div>
+
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn bs" style="flex:1" onclick="openImportSimat()">↺ Otro archivo</button>
+      <button class="btn bg" style="flex:2" id="simat-confirm-btn" onclick="confirmSimatImport()" disabled>Selecciona al menos un grado</button>
+    </div>
+  `;
+  resultEl.style.display = 'block';
+  renderSimatPreview();
+}
+
+function buildSimatClasses() {
+  if (!_simatParsed) return [];
+  const checked = [...document.querySelectorAll('.simat-grado-chk:checked')].map(el => el.value);
+  const onlyMatric = document.getElementById('simat-only-matric')?.checked !== false;
+  if (!checked.length) return [];
+
+  const groupMap = {};
+  _simatParsed.rows.forEach(r => {
+    const g = String(r['GRADO_COD'] == null ? '' : r['GRADO_COD']).trim();
+    if (checked.indexOf(g) < 0) return;
+    const est = String(r['ESTADO'] || '').trim().toUpperCase();
+    if (onlyMatric && est !== 'MATRICULADO') return;
+    const grupo = String(r['GRUPO'] || '').trim();
+    if (!grupo) return;
+    const doc = String(r['DOC'] || '').trim();
+    if (!doc) return;
+
+    const key = grupo;
+    if (!groupMap[key]) {
+      groupMap[key] = {
+        simatGroup: grupo,
+        name: 'Grupo ' + grupo,
+        school: String(r['INSTITUCION'] || '').trim(),
+        sede: String(r['SEDE'] || '').trim(),
+        jornada: String(r['JORNADA'] || '').trim(),
+        grade: gradeLabel(g).replace(/^Grado\s+/,''),  // store '9' not 'Grado 9'
+        gradeCode: g,
+        aula: grupo,
+        students: [],
+        _seen: new Set()
+      };
+    }
+    if (groupMap[key]._seen.has(doc)) return;
+    groupMap[key]._seen.add(doc);
+    groupMap[key].students.push({
+      id: genId('s'),
+      simat: doc,
+      apellido1: String(r['APELLIDO1'] || '').trim().toUpperCase(),
+      apellido2: String(r['APELLIDO2'] || '').trim().toUpperCase(),
+      nombre1:   String(r['NOMBRE1']   || '').trim().toUpperCase(),
+      nombre2:   String(r['NOMBRE2']   || '').trim().toUpperCase()
+    });
+  });
+
+  const out = Object.values(groupMap).map(c => {
+    delete c._seen;
+    c.students.sort((a,b)=>(a.apellido1||'').localeCompare(b.apellido1||'','es'));
+    return c;
+  });
+  out.sort((a,b)=>String(a.simatGroup).localeCompare(String(b.simatGroup),'es'));
+  return out;
+}
+
+function renderSimatPreview() {
+  const previewEl = document.getElementById('simat-preview');
+  const btn = document.getElementById('simat-confirm-btn');
+  if (!previewEl || !btn) return;
+
+  const classes = buildSimatClasses();
+  if (!classes.length) {
+    previewEl.innerHTML = '';
+    btn.disabled = true;
+    btn.textContent = 'Selecciona al menos un grado';
+    return;
+  }
+
+  const totalStu = classes.reduce((a,c)=>a + c.students.length, 0);
+  const existing = new Set(S.classes.filter(c => c.simatGroup).map(c => c.simatGroup));
+  const willReplace = classes.filter(c => existing.has(c.simatGroup)).length;
+
+  previewEl.innerHTML = `
+    <div class="stitle">Vista previa (${classes.length} clase(s) · ${totalStu} estudiante(s))</div>
+    <div class="card" style="padding:6px">
+      ${classes.map(c => `
+        <div class="class-item" style="border-radius:10px;padding:10px 12px">
+          <div style="flex:1">
+            <div class="cn">${esc(c.name)}${existing.has(c.simatGroup) ? ' <span style="background:#FFF3D6;color:#7A5C00;padding:1px 6px;border-radius:6px;font-size:.7em">reemplazará existente</span>' : ''}</div>
+            <div class="cm">${esc([c.sede, c.jornada, gradeLabel(c.gradeCode)].filter(Boolean).join(' · '))}</div>
+          </div>
+          <div class="cbadge">${c.students.length} est.</div>
+        </div>
+      `).join('')}
+    </div>
+    ${willReplace ? `<div class="fhint" style="margin-top:6px;color:#7A5C00">⚠️ ${willReplace} clase(s) ya existen con el mismo GRUPO y se reemplazarán (la lista nueva sustituye a la actual).</div>` : ''}
+  `;
+
+  btn.disabled = false;
+  btn.textContent = `✓ Crear ${classes.length} clase(s) con ${totalStu} estudiante(s)`;
+}
+
+function confirmSimatImport() {
+  const classes = buildSimatClasses();
+  if (!classes.length) return;
+  const totalStu = classes.reduce((a,c)=>a + c.students.length, 0);
+
+  showModal(
+    `¿Crear ${classes.length} clase(s)?`,
+    `Se agregarán ${totalStu} estudiantes desde SIMAT. Las clases con el mismo GRUPO se reemplazarán (no se duplican).`,
+    () => {
+      let created = 0, replaced = 0;
+      classes.forEach(nc => {
+        const existingIdx = S.classes.findIndex(c => c.simatGroup && c.simatGroup === nc.simatGroup);
+        const base = {
+          simatGroup: nc.simatGroup,
+          name: nc.name,
+          school: nc.school,
+          sede: nc.sede,
+          jornada: nc.jornada,
+          grade: nc.grade,
+          gradeCode: nc.gradeCode,
+          aula: nc.aula,
+          students: nc.students,
+          source: 'simat'
+        };
+        if (existingIdx >= 0) {
+          S.classes[existingIdx] = { ...S.classes[existingIdx], ...base };
+          replaced++;
+        } else {
+          S.classes.push({ id: genId('cls'), createdAt: new Date().toISOString(), ...base });
+          created++;
+        }
+      });
+      save();
+      const parts = [];
+      if (created)  parts.push(`${created} creada(s)`);
+      if (replaced) parts.push(`${replaced} actualizada(s)`);
+      toast(parts.join(' · ') || 'Listo', 'ok');
+      // volver a la pantalla anterior (manage) — back() ya hace pop + render
+      back();
+    }
+  );
+}
+
+/* ═══════════════════════════════════
    SETTINGS (Events + Slots)
 ═══════════════════════════════════ */
 function openSettings() { renderSettings(); go('settings'); }
@@ -2035,10 +2389,17 @@ function renderHistory() {
       const evt=getEvt(r.eventId);
       const d=dot(cls);
       const total=cls.students.length, absCnt=r.absentIds.length;
+      const lateIds = r.lateIds || [];
+      const lateCnt = lateIds.length;
+      const presCnt = Math.max(total - absCnt - lateCnt, 0);
       const absNames=r.absentIds
         .map(id=>cls.students.find(s=>s.id===id)).filter(Boolean)
         .sort((a,b)=>(a.apellido1||'').localeCompare(b.apellido1||'','es'))
         .map(s=>`<span>${esc(dname(s))}</span>`).join('');
+      const lateNames=lateIds
+        .map(id=>cls.students.find(s=>s.id===id)).filter(Boolean)
+        .sort((a,b)=>(a.apellido1||'').localeCompare(b.apellido1||'','es'))
+        .map(s=>`<span style="background:#FFF3CD;color:#7A5C00;border:1px solid var(--amarillo)">${esc(dname(s))}</span>`).join('');
       return `<div class="hcard">
         <div class="hcard-hdr">
           <div class="cdot ${d}"></div>
@@ -2054,10 +2415,13 @@ function renderHistory() {
         <div class="hbody">
           ${evt?`<div class="hevt">🎯 ${esc(evt.name)}</div>`:''}
           <div class="hstats">
-            <div class="hstat"><div class="hdot" style="background:var(--verde)"></div>${total-absCnt} presentes</div>
+            <div class="hstat"><div class="hdot" style="background:var(--verde)"></div>${presCnt} presentes</div>
             <div class="hstat"><div class="hdot" style="background:var(--rojo)"></div>${absCnt} ausentes</div>
+            ${lateCnt?`<div class="hstat"><div class="hdot" style="background:var(--amarillo)"></div>${lateCnt} tarde</div>`:''}
           </div>
-          ${absNames?`<div class="absl">${absNames}</div>`:'<div style="color:var(--verde);font-weight:700;font-size:.8rem">✓ Todos presentes</div>'}
+          ${absNames?`<div class="absl">${absNames}</div>`:''}
+          ${lateNames?`<div class="absl">${lateNames}</div>`:''}
+          ${(!absNames && !lateNames)?'<div style="color:var(--verde);font-weight:700;font-size:.8rem">✓ Todos presentes</div>':''}
         </div>
       </div>`;
     }).join('');
@@ -2084,7 +2448,9 @@ function buildCSV(recs) {
     const cls=getCls(r.classId); if(!cls)return;
     const evt=getEvt(r.eventId);
     sortStu(cls.students).forEach(s=>{
-      const status=r.absentIds.includes(s.id)?'Ausente':'Presente';
+      const status=r.absentIds.includes(s.id)
+        ? 'Ausente'
+        : ((r.lateIds||[]).includes(s.id) ? 'Tarde' : 'Presente');
       const fac = r.facilitador || {};
       rows.push([
         fac.nombre||S.profile.nombre||'', fac.idPersonal||S.profile.idPersonal||'',
