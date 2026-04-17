@@ -237,10 +237,22 @@ function handleRegisterTeacher(body) {
   }
 
   var cfg = getConfig();
+  // Por defecto operamos en modo whitelist: solo las cédulas pre-listadas
+  // por el coordinador en la pestaña Profes pueden registrarse. Esto
+  // significa que un URL filtrado por sí solo NO da acceso — el atacante
+  // también necesitaría una cédula autorizada.
+  //
+  // Para desactivar el whitelist (modo abierto: cualquier cédula puede
+  // registrarse), pon  requireWhitelist = FALSE  en la pestaña Config.
+  var whitelistOff = /^(false|0|no|off)$/i.test(String(cfg.requireWhitelist || '').trim());
+  var requireWhitelist = !whitelistOff;
+
   var sheet = ensureTab('Profes', PROFES_HEADERS);
 
-  // ¿Existe ya un profe con esa cédula? Si sí, reutilizamos su fila
-  // (esto cubre reinstalaciones del app o cambio de celular).
+  // ¿Existe ya una fila con esa cédula?
+  //   - Si la pre-populó el coordinador (token vacío, activo=TRUE) → se la asignamos.
+  //   - Si ya tiene token → reutilizamos (cubre reinstalaciones del app).
+  //   - Si está inactiva → rechazamos.
   var lastRow = sheet.getLastRow();
   if (lastRow >= 2) {
     var data = sheet.getRange(2, 1, lastRow - 1, PROFES_HEADERS.length).getValues();
@@ -248,17 +260,26 @@ function handleRegisterTeacher(body) {
       if (String(data[i][PR.idPersonal]).trim() === idPersonal) {
         var rowIdx = i + 2;
         var existingToken = String(data[i][PR.token] || '').trim();
-        // Si el profe está inactivo, devolver error claro (no generar token nuevo)
         var activo = data[i][PR.activo];
         var activoTrue = (activo === true || activo === 1 ||
                           /^(true|1|sí|si|yes|y|activo)$/i.test(String(activo).trim()));
         if (!activoTrue) {
           return { ok: false,
-                   error: 'Tu cédula aparece en el registro pero tu acceso está inactivo. Contacta al coordinador.' };
+                   error: 'Tu cédula aparece en la lista pero tu acceso está inactivo. Contacta al coordinador.' };
         }
-        // Actualizar nombre (por si cambió) y lastSeen
-        sheet.getRange(rowIdx, PR.nombre + 1).setValue(nombre);
-        sheet.getRange(rowIdx, PR.lastSeen + 1).setValue(new Date().toISOString());
+        var now = new Date().toISOString();
+        // Primer contacto de una fila pre-populada: emitir token y marcar firstSeen
+        if (!existingToken) {
+          existingToken = Utilities.getUuid();
+          sheet.getRange(rowIdx, PR.token + 1).setValue(existingToken);
+          if (!data[i][PR.firstSeen]) {
+            sheet.getRange(rowIdx, PR.firstSeen + 1).setValue(now);
+          }
+        }
+        // Actualizar nombre (por si el coordinador lo puso distinto) y lastSeen
+        if (nombre) sheet.getRange(rowIdx, PR.nombre + 1).setValue(nombre);
+        sheet.getRange(rowIdx, PR.lastSeen + 1).setValue(now);
+        SpreadsheetApp.flush();
         return {
           ok: true,
           token: existingToken,
@@ -270,17 +291,26 @@ function handleRegisterTeacher(body) {
     }
   }
 
-  // Profe nuevo — generar token y agregar fila
+  // Cédula no está en la pestaña Profes
+  if (requireWhitelist) {
+    return {
+      ok: false,
+      error: 'Tu cédula (' + idPersonal + ') no está autorizada para este colegio. ' +
+             'Pídele al coordinador que te agregue a la lista de docentes antes de conectarte.'
+    };
+  }
+
+  // Modo abierto (requireWhitelist=FALSE): crear una fila nueva
   var token = Utilities.getUuid();
-  var now = new Date().toISOString();
+  var now2 = new Date().toISOString();
   sheet.appendRow([
     token,       // token
     nombre,      // nombre
     idPersonal,  // idPersonal
-    now,         // firstSeen
-    now,         // lastSeen
-    true,        // activo — por defecto TRUE (ajustar a FALSE en Config si quieres aprobación manual)
-    ''           // notas
+    now2,        // firstSeen
+    now2,        // lastSeen
+    true,        // activo
+    'auto-registered (modo abierto)'  // notas
   ]);
   SpreadsheetApp.flush();
 
@@ -307,6 +337,7 @@ function onOpen() {
     .addItem('Vaciar pestaña Clases', 'clearClases')
     .addSeparator()
     .addItem('Generar / rotar admin token', 'generateAdminToken')
+    .addItem('Agregar docentes autorizados…', 'bulkAddProfes')
     .addItem('Ver docentes registrados', 'showProfes')
     .addSeparator()
     .addItem('Ver instrucciones de despliegue', 'showDeployHelp')
@@ -349,6 +380,72 @@ function generateAdminToken() {
   SpreadsheetApp.flush();
   ui.alert('✅ Admin token generado',
     'Cópialo y guárdalo en lugar seguro. El dashboard te lo pedirá la primera vez:\n\n' + token,
+    ui.ButtonSet.OK);
+}
+
+function bulkAddProfes() {
+  var ui = SpreadsheetApp.getUi();
+  var resp = ui.prompt('Agregar docentes autorizados',
+    'Pega la lista de docentes autorizados, una línea por docente.\n\n' +
+    'Formato:  cédula, nombre completo\n\n' +
+    'Ejemplos:\n' +
+    '  12345678, Ana García Ruiz\n' +
+    '  87654321, Luis Pérez Mora\n\n' +
+    'Si una cédula ya existe no la duplica (solo actualiza el nombre si lo cambias).',
+    ui.ButtonSet.OK_CANCEL);
+  if (resp.getSelectedButton() !== ui.Button.OK) return;
+  var text = (resp.getResponseText() || '').trim();
+  if (!text) return;
+
+  var sheet = ensureTab('Profes', PROFES_HEADERS);
+  // Cargar cédulas existentes para dedup
+  var existing = {};
+  var lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    var data = sheet.getRange(2, 1, lastRow - 1, PROFES_HEADERS.length).getValues();
+    for (var i = 0; i < data.length; i++) {
+      var c = String(data[i][PR.idPersonal]).trim();
+      if (c) existing[c] = i + 2;  // rowIdx
+    }
+  }
+
+  var added = 0, updated = 0, skipped = 0;
+  var newRows = [];
+  text.split(/\r?\n/).forEach(function(line) {
+    line = line.trim();
+    if (!line) return;
+    var parts = line.split(',').map(function(x){return x.trim();});
+    var idPersonal = parts[0] || '';
+    var nombre = parts.slice(1).join(',').trim();
+    if (!idPersonal) { skipped++; return; }
+    if (existing[idPersonal]) {
+      // Actualizar nombre si se provee uno distinto
+      if (nombre) {
+        sheet.getRange(existing[idPersonal], PR.nombre + 1).setValue(nombre);
+        updated++;
+      } else {
+        skipped++;
+      }
+      return;
+    }
+    // Nueva fila: token/firstSeen/lastSeen vacíos — se llenarán cuando el profe se registre
+    newRows.push(['', nombre || '(pendiente)', idPersonal, '', '', true, 'pre-autorizado']);
+    existing[idPersonal] = -1;  // marcamos para evitar duplicados dentro del mismo paste
+    added++;
+  });
+
+  if (newRows.length) {
+    var startRow = sheet.getLastRow() + 1;
+    sheet.getRange(startRow, 1, newRows.length, PROFES_HEADERS.length).setValues(newRows);
+    SpreadsheetApp.flush();
+  }
+
+  ui.alert('✅ Lista actualizada',
+    'Agregados: ' + added + '\n' +
+    'Actualizados (nombre): ' + updated + '\n' +
+    'Omitidos: ' + skipped + '\n\n' +
+    'Los docentes nuevos aparecen con token vacío hasta que se conecten desde el app. ' +
+    'Cuando lo hagan, se les emite un token automáticamente y se llenan firstSeen/lastSeen.',
     ui.ButtonSet.OK);
 }
 
@@ -402,12 +499,30 @@ function checkConfig() {
     ui.alert('⚠️ Configuración incompleta',
       'Llena las celdas schoolName y schoolCode en la pestaña Config.',
       ui.ButtonSet.OK);
-  } else {
-    ui.alert('✅ Configuración OK',
-      'Colegio: ' + cfg.schoolName + '\nCódigo: ' + cfg.schoolCode +
-      '\n\nAhora despliega el script como Web App:\nExtensions → Apps Script → Deploy → New deployment → Web app',
-      ui.ButtonSet.OK);
+    return;
   }
+
+  // Estado del sistema de tokens
+  var hasAdminToken = !!(cfg.adminToken && String(cfg.adminToken).trim());
+  var whitelistOff = /^(false|0|no|off)$/i.test(String(cfg.requireWhitelist || '').trim());
+  var ss = getSheet();
+  var profesSheet = ss.getSheetByName('Profes');
+  var profesCount = 0;
+  if (profesSheet && profesSheet.getLastRow() >= 2) {
+    profesCount = profesSheet.getLastRow() - 1;
+  }
+
+  var msg = '✅ Configuración básica\n';
+  msg += '  Colegio: ' + cfg.schoolName + '\n';
+  msg += '  Código:  ' + cfg.schoolCode + '\n\n';
+  msg += '🔐 Seguridad\n';
+  msg += '  Admin token: ' + (hasAdminToken ? '✅ generado' : '❌ falta (Menú → Generar admin token)') + '\n';
+  msg += '  Modo whitelist: ' + (whitelistOff ? '⚠️ DESACTIVADO (cualquier cédula puede registrarse)' : '✅ activo (solo cédulas pre-listadas)') + '\n';
+  msg += '  Docentes registrados: ' + profesCount + '\n';
+  if (!whitelistOff && profesCount === 0) {
+    msg += '\n⚠️ Nadie puede conectarse todavía — agrega docentes autorizados\n   desde "Menú → Agregar docentes autorizados…".';
+  }
+  ui.alert('Estado de AulaPresente', msg, ui.ButtonSet.OK);
 }
 
 function showDeployHelp() {
