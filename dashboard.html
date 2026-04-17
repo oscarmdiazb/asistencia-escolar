@@ -105,6 +105,7 @@
         <span class="header-code" id="school-code-display"></span>
       </div>
       <button class="btn-refresh" onclick="refreshData()">🔄 Actualizar</button>
+      <button class="btn-refresh" onclick="disconnect()" id="btn-disconnect" style="display:none;margin-left:8px">↩ Cambiar colegio</button>
     </div>
   </div>
 
@@ -192,8 +193,13 @@ let DATA = null; // { classes, records, schoolName, schoolCode }
 
 // ── Init ──
 (function init() {
-  const hash = location.hash.replace('#', '').trim();
-  if (hash && hash.startsWith('https://')) {
+  const raw = location.hash.replace('#', '').trim();
+  if (!raw) return;
+  // Accept both plain and URL-encoded hashes (newer versions encode for URL safety)
+  let hash;
+  try { hash = decodeURIComponent(raw); }
+  catch (e) { hash = raw; }
+  if (hash.startsWith('https://') && hash.includes('script.google.com')) {
     document.getElementById('url-input').value = hash;
     connectAndLoad();
   }
@@ -202,6 +208,10 @@ let DATA = null; // { classes, records, schoolName, schoolCode }
 async function connectAndLoad() {
   const url = document.getElementById('url-input').value.trim();
   if (!url) { showError('Pega la URL de conexión'); return; }
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/.test(url)) {
+    showError('La URL debe ser un enlace de Apps Script (https://script.google.com/macros/s/.../exec)');
+    return;
+  }
   SCRIPT_URL = url;
 
   showError('');
@@ -212,9 +222,21 @@ async function connectAndLoad() {
 
   try {
     const res = await fetch(SCRIPT_URL + '?action=getDashboard');
+    const text = await res.text();
     let result;
-    try { const text = await res.text(); result = JSON.parse(text); }
-    catch(e) { result = { ok: true, classes: [], records: [], schoolName: '', schoolCode: '' }; }
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      // The API returned something that isn't JSON (often an HTML error page
+      // from Google: login required, deployment not found, permission denied…).
+      // Surface it instead of silently pretending we got empty data.
+      const snippet = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
+      throw new Error(
+        'La URL respondió con algo que no es JSON.\n' +
+        'Verifica que el deployment de Apps Script esté activo y con acceso "Anyone".\n' +
+        (snippet ? 'Respuesta recibida: "' + snippet + '…"' : '')
+      );
+    }
     if (!result.ok) {
       showError(result.error || 'Error al conectar');
       document.getElementById('main-content').style.display = 'none';
@@ -225,10 +247,11 @@ async function connectAndLoad() {
     DATA = result;
     location.hash = encodeURIComponent(url);
 
-    // Show header info
+    // Show header info + "Cambiar colegio" button
     document.getElementById('header-school').style.display = 'flex';
     document.getElementById('school-name-display').textContent = result.schoolName || '';
     document.getElementById('school-code-display').textContent = result.schoolCode || '';
+    document.getElementById('btn-disconnect').style.display = 'inline-block';
 
     // Populate filters
     populateFilters();
@@ -238,7 +261,7 @@ async function connectAndLoad() {
     document.getElementById('dashboard').style.display = 'block';
     renderDashboard();
   } catch (err) {
-    showError('Error de red: ' + err.message);
+    showError(err.message || 'Error de red');
     document.getElementById('main-content').style.display = 'none';
     document.getElementById('connect-section').style.display = 'block';
   }
@@ -247,6 +270,23 @@ async function connectAndLoad() {
 async function refreshData() {
   if (!DATA) return;
   await connectAndLoad();
+}
+
+function disconnect() {
+  if (!confirm('¿Cambiar de colegio? Se desconectará del Sheet actual.')) return;
+  DATA = null;
+  SCRIPT_URL = '';
+  // Clear the hash without reloading
+  history.replaceState(null, '', location.pathname + location.search);
+  // Reset UI: show connect form, hide dashboard + school info
+  document.getElementById('url-input').value = '';
+  document.getElementById('connect-error').textContent = '';
+  document.getElementById('header-school').style.display = 'none';
+  document.getElementById('school-name-display').textContent = '';
+  document.getElementById('school-code-display').textContent = '';
+  document.getElementById('btn-disconnect').style.display = 'none';
+  document.getElementById('main-content').style.display = 'none';
+  document.getElementById('connect-section').style.display = 'block';
 }
 
 function showError(msg) {
