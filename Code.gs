@@ -877,15 +877,17 @@ function importFromSimat() {
     if (!importAll && grados.indexOf(grado) < 0) continue;
     var grupo = String(row[colIdx.GRUPO] || '').trim();
     if (!grupo) continue;
+    var jornada = String(row[colIdx.JORNADA] || '').trim();
 
-    var classId = grupo;
+    var classId = grupo + '|' + jornada.toUpperCase();
     if (!classMap[classId]) {
+      var jornadaLabel = jornada ? ' — ' + jornada.charAt(0).toUpperCase() + jornada.slice(1).toLowerCase() : '';
       classMap[classId] = {
         classId: classId,
-        name: 'Grupo ' + grupo,
+        name: 'Grupo ' + grupo + jornadaLabel,
         school: String(row[colIdx.INSTITUCION] || '').trim(),
         sede: String(row[colIdx.SEDE] || '').trim(),
-        jornada: String(row[colIdx.JORNADA] || '').trim(),
+        jornada: jornada,
         grade: grado,
         aula: grupo,
         version: 0,

@@ -2226,15 +2226,17 @@ function buildSimatClasses() {
     if (!grupo) return;
     const doc = String(r['DOC'] || '').trim();
     if (!doc) return;
+    const jornada = String(r['JORNADA'] || '').trim();
 
-    const key = grupo;
+    const key = grupo + '|' + jornada.toUpperCase();
     if (!groupMap[key]) {
+      const jornadaLabel = jornada ? ' — ' + jornada.charAt(0).toUpperCase() + jornada.slice(1).toLowerCase() : '';
       groupMap[key] = {
         simatGroup: grupo,
-        name: 'Grupo ' + grupo,
+        name: 'Grupo ' + grupo + jornadaLabel,
         school: String(r['INSTITUCION'] || '').trim(),
         sede: String(r['SEDE'] || '').trim(),
-        jornada: String(r['JORNADA'] || '').trim(),
+        jornada: jornada,
         grade: gradeLabel(g).replace(/^Grado\s+/,''),  // store '9' not 'Grado 9'
         gradeCode: g,
         aula: grupo,
@@ -2277,8 +2279,9 @@ function renderSimatPreview() {
   }
 
   const totalStu = classes.reduce((a,c)=>a + c.students.length, 0);
-  const existing = new Set(S.classes.filter(c => c.simatGroup).map(c => c.simatGroup));
-  const willReplace = classes.filter(c => existing.has(c.simatGroup)).length;
+  const simatKey = c => (c.simatGroup || '') + '|' + String(c.jornada || '').toUpperCase();
+  const existing = new Set(S.classes.filter(c => c.simatGroup).map(simatKey));
+  const willReplace = classes.filter(c => existing.has(simatKey(c))).length;
 
   previewEl.innerHTML = `
     <div class="stitle">Vista previa (${classes.length} clase(s) · ${totalStu} estudiante(s))</div>
@@ -2286,7 +2289,7 @@ function renderSimatPreview() {
       ${classes.map(c => `
         <div class="class-item" style="border-radius:10px;padding:10px 12px">
           <div style="flex:1">
-            <div class="cn">${esc(c.name)}${existing.has(c.simatGroup) ? ' <span style="background:#FFF3D6;color:#7A5C00;padding:1px 6px;border-radius:6px;font-size:.7em">reemplazará existente</span>' : ''}</div>
+            <div class="cn">${esc(c.name)}${existing.has(simatKey(c)) ? ' <span style="background:#FFF3D6;color:#7A5C00;padding:1px 6px;border-radius:6px;font-size:.7em">reemplazará existente</span>' : ''}</div>
             <div class="cm">${esc([c.sede, c.jornada, gradeLabel(c.gradeCode)].filter(Boolean).join(' · '))}</div>
           </div>
           <div class="cbadge">${c.students.length} est.</div>
@@ -2307,11 +2310,14 @@ function confirmSimatImport() {
 
   showModal(
     `¿Crear ${classes.length} clase(s)?`,
-    `Se agregarán ${totalStu} estudiantes desde SIMAT. Las clases con el mismo GRUPO se reemplazarán (no se duplican).`,
+    `Se agregarán ${totalStu} estudiantes desde SIMAT. Las clases con el mismo GRUPO y JORNADA se reemplazarán (no se duplican).`,
     () => {
       let created = 0, replaced = 0;
+      const sameKey = (a, b) =>
+        a.simatGroup === b.simatGroup &&
+        String(a.jornada || '').toUpperCase() === String(b.jornada || '').toUpperCase();
       classes.forEach(nc => {
-        const existingIdx = S.classes.findIndex(c => c.simatGroup && c.simatGroup === nc.simatGroup);
+        const existingIdx = S.classes.findIndex(c => c.simatGroup && sameKey(c, nc));
         const base = {
           simatGroup: nc.simatGroup,
           name: nc.name,
