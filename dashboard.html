@@ -111,11 +111,16 @@
 
   <!-- Connect form (shown when no code) -->
   <div class="connect-bar" id="connect-section">
-    <div class="connect-form">
+    <div class="connect-form" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
       <label>URL de conexión:</label>
-      <input type="url" id="url-input" placeholder="https://script.google.com/macros/s/.../exec" style="width:400px;font-size:.82rem">
+      <input type="url" id="url-input" placeholder="https://script.google.com/macros/s/.../exec" style="width:380px;font-size:.82rem">
+      <label style="margin-left:6px">Admin token:</label>
+      <input type="password" id="admin-token-input" placeholder="UUID generado en el Sheet (Menú → AulaPresente → Generar admin token)" style="width:240px;font-size:.82rem">
+      <label style="font-size:.78rem;color:var(--text2);display:flex;align-items:center;gap:4px">
+        <input type="checkbox" id="remember-token" checked> recordar en este navegador
+      </label>
       <button onclick="connectAndLoad()">Conectar</button>
-      <span id="connect-error" style="color:var(--rojo);font-size:.85rem;font-weight:600"></span>
+      <span id="connect-error" style="color:var(--rojo);font-size:.85rem;font-weight:600;flex-basis:100%"></span>
     </div>
   </div>
 
@@ -189,7 +194,12 @@
 'use strict';
 
 let SCRIPT_URL = '';
+let ADMIN_TOKEN = '';
 let DATA = null; // { classes, records, schoolName, schoolCode }
+
+// Per-URL admin token cache key — we scope tokens to the script URL so
+// if you have dashboards for multiple schools each one has its own.
+function tokenKey(url) { return 'aulapresente_admin_token:' + url; }
 
 // ── Init ──
 (function init() {
@@ -201,18 +211,32 @@ let DATA = null; // { classes, records, schoolName, schoolCode }
   catch (e) { hash = raw; }
   if (hash.startsWith('https://') && hash.includes('script.google.com')) {
     document.getElementById('url-input').value = hash;
-    connectAndLoad();
+    // If we have the admin token cached in localStorage for this URL, prefill
+    // and auto-connect. Otherwise the user has to enter it manually.
+    try {
+      const cached = localStorage.getItem(tokenKey(hash));
+      if (cached) {
+        document.getElementById('admin-token-input').value = cached;
+        connectAndLoad();
+      }
+    } catch (e) { /* storage blocked — user can still paste manually */ }
   }
 })();
 
 async function connectAndLoad() {
   const url = document.getElementById('url-input').value.trim();
+  const adminToken = document.getElementById('admin-token-input').value.trim();
   if (!url) { showError('Pega la URL de conexión'); return; }
   if (!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec/.test(url)) {
     showError('La URL debe ser un enlace de Apps Script (https://script.google.com/macros/s/.../exec)');
     return;
   }
+  if (!adminToken) {
+    showError('Falta el admin token. Genéralo desde el Sheet: Menú → AulaPresente → Generar admin token.');
+    return;
+  }
   SCRIPT_URL = url;
+  ADMIN_TOKEN = adminToken;
 
   showError('');
   document.getElementById('connect-section').style.display = 'none';
@@ -221,7 +245,7 @@ async function connectAndLoad() {
   document.getElementById('dashboard').style.display = 'none';
 
   try {
-    const res = await fetch(SCRIPT_URL + '?action=getDashboard');
+    const res = await fetch(SCRIPT_URL + '?action=getDashboard&adminToken=' + encodeURIComponent(ADMIN_TOKEN));
     const text = await res.text();
     let result;
     try {
@@ -238,6 +262,11 @@ async function connectAndLoad() {
       );
     }
     if (!result.ok) {
+      // If the server says the admin token is bad, forget the cached one so
+      // the next attempt requires a fresh paste.
+      if (result.unauthorized) {
+        try { localStorage.removeItem(tokenKey(url)); } catch(e) {}
+      }
       showError(result.error || 'Error al conectar');
       document.getElementById('main-content').style.display = 'none';
       document.getElementById('connect-section').style.display = 'block';
@@ -246,6 +275,12 @@ async function connectAndLoad() {
 
     DATA = result;
     location.hash = encodeURIComponent(url);
+    // Cache the admin token per URL if the user wants to remember it
+    try {
+      const remember = document.getElementById('remember-token').checked;
+      if (remember) localStorage.setItem(tokenKey(url), adminToken);
+      else          localStorage.removeItem(tokenKey(url));
+    } catch(e) { /* storage unavailable */ }
 
     // Show header info + "Cambiar colegio" button
     document.getElementById('header-school').style.display = 'flex';
@@ -273,13 +308,18 @@ async function refreshData() {
 }
 
 function disconnect() {
-  if (!confirm('¿Cambiar de colegio? Se desconectará del Sheet actual.')) return;
+  if (!confirm('¿Cambiar de colegio? Se desconectará del Sheet actual (el admin token quedará borrado en este navegador).')) return;
+  const prevUrl = SCRIPT_URL;
   DATA = null;
   SCRIPT_URL = '';
+  ADMIN_TOKEN = '';
+  // Clear cached admin token for this URL too (user may be switching schools)
+  try { if (prevUrl) localStorage.removeItem(tokenKey(prevUrl)); } catch(e) {}
   // Clear the hash without reloading
   history.replaceState(null, '', location.pathname + location.search);
   // Reset UI: show connect form, hide dashboard + school info
   document.getElementById('url-input').value = '';
+  document.getElementById('admin-token-input').value = '';
   document.getElementById('connect-error').textContent = '';
   document.getElementById('header-school').style.display = 'none';
   document.getElementById('school-name-display').textContent = '';

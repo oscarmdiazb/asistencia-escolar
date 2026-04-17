@@ -951,7 +951,26 @@ function save() {
 // Each school has its own Script URL (entered by coordinator during setup)
 function getScriptUrl() { return (S.cloud && S.cloud.scriptUrl) || ''; }
 
-function cloudOk() { return getScriptUrl() && S.cloud && S.cloud.schoolCode; }
+// "Connected" has a different requirement depending on role:
+//   - teacher:     URL + schoolCode + a per-teacher token (registerTeacher)
+//   - coordinator: URL + schoolCode + an adminToken (generated in Apps Script menu)
+function cloudOk() {
+  if (!getScriptUrl() || !S.cloud || !S.cloud.schoolCode) return false;
+  if (S.cloud.role === 'coordinator') return !!S.cloud.adminToken;
+  return !!S.cloud.token;
+}
+
+// Handle 401-style response uniformly: clear the relevant token so the
+// user is forced back through the connect flow, preserving the rest of
+// their cloud config (URL, schoolCode) so they can reconnect quickly.
+function handleUnauthorized(result) {
+  if (!result || !result.unauthorized) return false;
+  if (S.cloud.role === 'coordinator') S.cloud.adminToken = '';
+  else S.cloud.token = '';
+  save();
+  toast(result.error || 'Acceso revocado — reconéctate', 'err');
+  return true;
+}
 
 // Safe fetch wrapper for Apps Script (handles redirects gracefully)
 async function gsFetch(url, opts) {
@@ -980,6 +999,20 @@ async function cloudPing() {
   return await gsFetch(getScriptUrl() + '?action=ping');
 }
 
+// ── Register teacher → obtains the teacher token ──
+async function cloudRegisterTeacher(nombre, idPersonal) {
+  const result = await gsFetch(getScriptUrl(), {
+    method: 'POST',
+    redirect: 'follow',
+    body: JSON.stringify({
+      action: 'registerTeacher',
+      nombre: nombre,
+      idPersonal: idPersonal
+    })
+  });
+  return result;
+}
+
 // ── Push classes (coordinator publishes) ──
 async function cloudPushClasses(classes) {
   if (!cloudOk()) return;
@@ -998,8 +1031,14 @@ async function cloudPushClasses(classes) {
   const result = await gsFetch(getScriptUrl(), {
     method: 'POST',
     redirect: 'follow',
-    body: JSON.stringify({ action: 'pushClasses', code: S.cloud.schoolCode, classes: payload })
+    body: JSON.stringify({
+      action: 'pushClasses',
+      code: S.cloud.schoolCode,
+      adminToken: S.cloud.adminToken || '',
+      classes: payload
+    })
   });
+  if (handleUnauthorized(result)) return result;
   if (result.ok) {
     classes.forEach(cls => {
       cls.cloudVersion = (cls.cloudVersion || 0) + 1;
@@ -1014,7 +1053,11 @@ async function cloudPushClasses(classes) {
 // ── Fetch classes (teacher pulls rosters) ──
 async function cloudFetchClasses() {
   if (!cloudOk()) return;
-  const result = await gsFetch(getScriptUrl() + '?action=getClasses&code=' + encodeURIComponent(S.cloud.schoolCode));
+  const result = await gsFetch(getScriptUrl()
+    + '?action=getClasses'
+    + '&code=' + encodeURIComponent(S.cloud.schoolCode)
+    + '&token=' + encodeURIComponent(S.cloud.token));
+  if (handleUnauthorized(result)) return;
   if (!result.ok) { toast(result.error || 'Error al sincronizar', 'err'); return; }
 
   let added = 0, updated = 0;
@@ -1094,6 +1137,7 @@ async function syncRecordToCloud(rec) {
   const payload = {
     action: 'pushAttendance',
     code: S.cloud.schoolCode,
+    token: S.cloud.token,
     record: {
       recordId: rec.id,
       classId: rec.classId,
@@ -1127,6 +1171,14 @@ async function syncRecordToCloud(rec) {
       redirect: 'follow',
       body: JSON.stringify(payload)
     });
+    if (handleUnauthorized(result)) {
+      // Token inválido — dejamos el record en la cola para reintentar
+      // cuando el profe vuelva a conectarse.
+      S.syncQueue.push(payload);
+      save();
+      updateSyncBadge();
+      return;
+    }
     if (result.ok) {
       rec.synced = true;
       save();
@@ -2728,7 +2780,10 @@ function openDashboardLink() {
    CLOUD: TEACHER FLOWS
 ═══════════════════════════════════ */
 function openConnect() {
-  const connected = S.cloud.role === 'teacher' && S.cloud.schoolCode;
+  // "Connected" now also requires a valid teacher token (issued by registerTeacher).
+  // Pre-token users who upgraded will fall through to the setup form and be
+  // prompted to re-authenticate — their URL pre-fills so it's one tap.
+  const connected = S.cloud.role === 'teacher' && S.cloud.schoolCode && S.cloud.token;
   document.getElementById('conn-setup').style.display = connected ? 'none' : 'block';
   document.getElementById('conn-connected').style.display = connected ? 'block' : 'none';
 
@@ -2738,6 +2793,9 @@ function openConnect() {
     document.getElementById('conn-last-sync').textContent = S.cloud.lastClassSync
       ? 'Última sincronización: ' + new Date(S.cloud.lastClassSync).toLocaleString('es-CO')
       : '';
+  } else if (S.cloud.scriptUrl) {
+    // Pre-fill the URL so the teacher just taps Conectar to re-authenticate
+    document.getElementById('conn-url').value = S.cloud.scriptUrl;
   }
   go('connect');
 }
@@ -2748,21 +2806,45 @@ async function doConnect() {
     toast('Pega el enlace que te compartió tu coordinador/a', 'err'); return;
   }
 
+  // Conectar requiere perfil completo — el colegio necesita saber
+  // quién eres para emitir un token individual (ver registerTeacher).
+  const nombre = (S.profile.nombre || '').trim();
+  const idPersonal = (S.profile.idPersonal || '').trim();
+  if (!nombre || !idPersonal) {
+    toast('Completa tu nombre y cédula en el perfil antes de conectarte', 'err');
+    openProfile();
+    return;
+  }
+
   S.cloud.scriptUrl = url;
   toast('Verificando conexión...', '');
   try {
-    const result = await gsFetch(url + '?action=ping');
-    if (!result.ok) {
+    // 1) Ping: valida que la URL responde y devuelve schoolName/schoolCode
+    const pingResult = await gsFetch(url + '?action=ping');
+    if (!pingResult.ok) {
       S.cloud.scriptUrl = '';
-      toast(result.error || 'No se pudo conectar', 'err'); return;
+      toast(pingResult.error || 'No se pudo conectar', 'err'); return;
     }
 
-    S.cloud.schoolCode = result.schoolCode || '';
-    S.cloud.schoolName = result.schoolName || '';
+    S.cloud.schoolCode = pingResult.schoolCode || '';
+    S.cloud.schoolName = pingResult.schoolName || '';
     S.cloud.role = 'teacher';
+
+    // 2) Registrar al docente y obtener su token individual
+    toast('Registrándote como docente...', '');
+    const regResult = await cloudRegisterTeacher(nombre, idPersonal);
+    if (!regResult.ok || !regResult.token) {
+      S.cloud.scriptUrl = '';
+      S.cloud.schoolCode = '';
+      S.cloud.schoolName = '';
+      toast(regResult.error || 'No se pudo registrar el docente', 'err');
+      return;
+    }
+    S.cloud.token = regResult.token;
     save();
 
-    toast('Conectado a ' + (result.schoolName || result.schoolCode) + '. Descargando clases...', 'ok');
+    // 3) Descargar las clases con el token recién emitido
+    toast('Conectado a ' + (pingResult.schoolName || pingResult.schoolCode) + '. Descargando clases...', 'ok');
     await cloudFetchClasses();
 
     document.getElementById('conn-setup').style.display = 'none';

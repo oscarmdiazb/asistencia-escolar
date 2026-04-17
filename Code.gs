@@ -45,6 +45,13 @@ var SIMAT_COLS = [
   'DOC', 'APELLIDO1', 'APELLIDO2', 'NOMBRE1', 'NOMBRE2'
 ];
 
+// Pestaña Profes (sistema de tokens por docente)
+var PROFES_HEADERS = [
+  'token', 'nombre', 'idPersonal', 'firstSeen', 'lastSeen', 'activo', 'notas'
+];
+// Índices 0-based
+var PR = { token:0, nombre:1, idPersonal:2, firstSeen:3, lastSeen:4, activo:5, notas:6 };
+
 // ═══════════════════════════════════
 // ROUTING
 // ═══════════════════════════════════
@@ -52,11 +59,28 @@ var SIMAT_COLS = [
 function doGet(e) {
   try {
     var action = (e.parameter.action || '').toLowerCase();
+    var params = e.parameter || {};
     switch (action) {
-      case 'ping':         return json(handlePing());
-      case 'getclasses':   return json(handleGetClasses());
-      case 'getdashboard': return json(handleGetDashboard());
-      default:             return json({ ok: false, error: 'Acción GET no válida' });
+      case 'ping':
+        // Público: solo devuelve schoolName/schoolCode para que el app
+        // pueda verificar que la URL conecta a un Sheet real antes de
+        // pedirle la identidad al profe.
+        return json(handlePing());
+
+      case 'getclasses': {
+        var t = verifyTeacherToken(params.token);
+        if (!t.ok) return json(t);
+        return json(handleGetClasses(t.teacher));
+      }
+
+      case 'getdashboard': {
+        var a = verifyAdminToken(params.adminToken);
+        if (!a.ok) return json(a);
+        return json(handleGetDashboard());
+      }
+
+      default:
+        return json({ ok: false, error: 'Acción GET no válida' });
     }
   } catch (err) {
     return json({ ok: false, error: err.message });
@@ -69,9 +93,26 @@ function doPost(e) {
     var body = JSON.parse(raw);
     var action = (body.action || '').toLowerCase();
     switch (action) {
-      case 'pushclasses':    return json(handlePushClasses(body));
-      case 'pushattendance': return json(handlePushAttendance(body));
-      default:               return json({ ok: false, error: 'Acción POST no válida' });
+      case 'registerteacher':
+        // Público: genera o reutiliza el token de un profe dada su
+        // identidad (nombre + cédula). Si el admin quiere pre-aprobar,
+        // puede crear la fila en Profes antes de que el profe se registre.
+        return json(handleRegisterTeacher(body));
+
+      case 'pushclasses': {
+        var a = verifyAdminToken(body.adminToken);
+        if (!a.ok) return json(a);
+        return json(handlePushClasses(body));
+      }
+
+      case 'pushattendance': {
+        var t = verifyTeacherToken(body.token);
+        if (!t.ok) return json(t);
+        return json(handlePushAttendance(body, t.teacher));
+      }
+
+      default:
+        return json({ ok: false, error: 'Acción POST no válida' });
     }
   } catch (err) {
     return json({ ok: false, error: err.message });
@@ -117,6 +158,142 @@ function ensureTab(name, headers) {
 }
 
 // ═══════════════════════════════════
+// AUTENTICACIÓN
+// ═══════════════════════════════════
+//
+// Dos niveles:
+//
+//   1) Admin token  — para el coordinador. Necesario para getDashboard
+//      y pushClasses. Se genera una sola vez con el menú "Generar admin
+//      token" y se guarda en la pestaña Config (fila `adminToken`). Si
+//      no existe, esos endpoints responden con "configuración incompleta"
+//      en vez de caer en modo inseguro.
+//
+//   2) Teacher token — para cada docente. Se genera al llamar
+//      registerTeacher (nombre + idPersonal). Se guarda en la pestaña
+//      Profes con un flag `activo` que el admin puede cambiar a FALSE
+//      para revocar acceso individual sin afectar a los demás. Necesario
+//      para getClasses y pushAttendance.
+//
+// Diseño pensado para el piloto donde el admin (Oscar) controla todos
+// los Sheets directamente.
+
+function verifyAdminToken(provided) {
+  var cfg = getConfig();
+  if (!cfg.adminToken) {
+    return { ok: false,
+             error: 'Este Sheet no tiene adminToken configurado. Corre "AulaPresente → Generar admin token" desde el menú.' };
+  }
+  if (!provided || String(provided).trim() !== String(cfg.adminToken).trim()) {
+    return { ok: false, error: 'adminToken inválido o no provisto.', unauthorized: true };
+  }
+  return { ok: true };
+}
+
+function verifyTeacherToken(provided) {
+  if (!provided) {
+    return { ok: false, error: 'Falta el token del docente.', unauthorized: true };
+  }
+  var ss = getSheet();
+  var sheet = ss.getSheetByName('Profes');
+  if (!sheet || sheet.getLastRow() < 2) {
+    return { ok: false, error: 'Token no reconocido (no hay docentes registrados).', unauthorized: true };
+  }
+  var data = sheet.getRange(2, 1, sheet.getLastRow() - 1, PROFES_HEADERS.length).getValues();
+  var providedStr = String(provided).trim();
+  for (var i = 0; i < data.length; i++) {
+    if (String(data[i][PR.token]).trim() === providedStr) {
+      var activo = data[i][PR.activo];
+      // Accept TRUE, true, 1, "TRUE", "Sí", etc.
+      var activoTrue = (activo === true || activo === 1 ||
+                        /^(true|1|sí|si|yes|y|activo)$/i.test(String(activo).trim()));
+      if (!activoTrue) {
+        return { ok: false,
+                 error: 'Tu acceso fue revocado por el coordinador. Contáctalo si crees que es un error.',
+                 unauthorized: true };
+      }
+      // Actualizar lastSeen
+      var rowIdx = i + 2; // +2 porque data empieza en fila 2 del sheet
+      sheet.getRange(rowIdx, PR.lastSeen + 1).setValue(new Date().toISOString());
+      return {
+        ok: true,
+        teacher: {
+          token: data[i][PR.token],
+          nombre: data[i][PR.nombre],
+          idPersonal: data[i][PR.idPersonal],
+          rowIdx: rowIdx
+        }
+      };
+    }
+  }
+  return { ok: false, error: 'Token no reconocido.', unauthorized: true };
+}
+
+function handleRegisterTeacher(body) {
+  var nombre = String(body.nombre || '').trim();
+  var idPersonal = String(body.idPersonal || '').trim();
+  if (!nombre || !idPersonal) {
+    return { ok: false, error: 'Se requiere nombre e idPersonal para registrarse.' };
+  }
+
+  var cfg = getConfig();
+  var sheet = ensureTab('Profes', PROFES_HEADERS);
+
+  // ¿Existe ya un profe con esa cédula? Si sí, reutilizamos su fila
+  // (esto cubre reinstalaciones del app o cambio de celular).
+  var lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    var data = sheet.getRange(2, 1, lastRow - 1, PROFES_HEADERS.length).getValues();
+    for (var i = 0; i < data.length; i++) {
+      if (String(data[i][PR.idPersonal]).trim() === idPersonal) {
+        var rowIdx = i + 2;
+        var existingToken = String(data[i][PR.token] || '').trim();
+        // Si el profe está inactivo, devolver error claro (no generar token nuevo)
+        var activo = data[i][PR.activo];
+        var activoTrue = (activo === true || activo === 1 ||
+                          /^(true|1|sí|si|yes|y|activo)$/i.test(String(activo).trim()));
+        if (!activoTrue) {
+          return { ok: false,
+                   error: 'Tu cédula aparece en el registro pero tu acceso está inactivo. Contacta al coordinador.' };
+        }
+        // Actualizar nombre (por si cambió) y lastSeen
+        sheet.getRange(rowIdx, PR.nombre + 1).setValue(nombre);
+        sheet.getRange(rowIdx, PR.lastSeen + 1).setValue(new Date().toISOString());
+        return {
+          ok: true,
+          token: existingToken,
+          schoolName: cfg.schoolName || '',
+          schoolCode: cfg.schoolCode || '',
+          reused: true
+        };
+      }
+    }
+  }
+
+  // Profe nuevo — generar token y agregar fila
+  var token = Utilities.getUuid();
+  var now = new Date().toISOString();
+  sheet.appendRow([
+    token,       // token
+    nombre,      // nombre
+    idPersonal,  // idPersonal
+    now,         // firstSeen
+    now,         // lastSeen
+    true,        // activo — por defecto TRUE (ajustar a FALSE en Config si quieres aprobación manual)
+    ''           // notas
+  ]);
+  SpreadsheetApp.flush();
+
+  return {
+    ok: true,
+    token: token,
+    schoolName: cfg.schoolName || '',
+    schoolCode: cfg.schoolCode || '',
+    reused: false
+  };
+}
+
+// ═══════════════════════════════════
 // CUSTOM MENU
 // ═══════════════════════════════════
 
@@ -129,8 +306,69 @@ function onOpen() {
     .addItem('Migrar encabezados a SIMAT', 'migrateHeaders')
     .addItem('Vaciar pestaña Clases', 'clearClases')
     .addSeparator()
+    .addItem('Generar / rotar admin token', 'generateAdminToken')
+    .addItem('Ver docentes registrados', 'showProfes')
+    .addSeparator()
     .addItem('Ver instrucciones de despliegue', 'showDeployHelp')
     .addToUi();
+}
+
+function generateAdminToken() {
+  var ui = SpreadsheetApp.getUi();
+  var ss = getSheet();
+  var cfg = ss.getSheetByName('Config');
+  if (!cfg) {
+    ui.alert('Falta la pestaña Config',
+      'Crea una pestaña "Config" con las filas schoolName y schoolCode antes de generar el token.',
+      ui.ButtonSet.OK);
+    return;
+  }
+  // Buscar la fila adminToken o agregarla
+  var data = cfg.getDataRange().getValues();
+  var existing = '';
+  var rowIdx = -1;
+  for (var i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim() === 'adminToken') {
+      rowIdx = i + 1;
+      existing = String(data[i][1] || '').trim();
+      break;
+    }
+  }
+  var msg = existing
+    ? '⚠️ Ya existe un adminToken. Si lo rotas, el dashboard tendrá que volver a pedirte el nuevo. ¿Continuar?'
+    : 'Se generará un adminToken nuevo y se guardará en Config. Úsalo en el dashboard.';
+  var conf = ui.alert('Generar admin token', msg, ui.ButtonSet.OK_CANCEL);
+  if (conf !== ui.Button.OK) return;
+
+  var token = Utilities.getUuid();
+  if (rowIdx < 0) {
+    cfg.appendRow(['adminToken', token]);
+  } else {
+    cfg.getRange(rowIdx, 2).setValue(token);
+  }
+  SpreadsheetApp.flush();
+  ui.alert('✅ Admin token generado',
+    'Cópialo y guárdalo en lugar seguro. El dashboard te lo pedirá la primera vez:\n\n' + token,
+    ui.ButtonSet.OK);
+}
+
+function showProfes() {
+  var ui = SpreadsheetApp.getUi();
+  var ss = getSheet();
+  var sheet = ss.getSheetByName('Profes');
+  if (!sheet || sheet.getLastRow() < 2) {
+    ui.alert('Sin docentes registrados',
+      'Todavía ningún profe ha hecho "Conectar a un colegio" desde el app. ' +
+      'Cuando lo hagan, aparecerán automáticamente en la pestaña Profes.',
+      ui.ButtonSet.OK);
+    return;
+  }
+  var n = sheet.getLastRow() - 1;
+  ss.setActiveSheet(sheet);
+  ui.alert('Docentes registrados: ' + n,
+    'Abrí la pestaña Profes para ti. Para revocar a un profe, ' +
+    'cambia su celda "activo" a FALSE. Para reactivarlo, pon TRUE.',
+    ui.ButtonSet.OK);
 }
 
 function clearClases() {
@@ -200,7 +438,11 @@ function handlePing() {
 // GET: GET CLASSES
 // ═══════════════════════════════════
 
-function handleGetClasses() {
+function handleGetClasses(teacher) {
+  // `teacher` is optional — si viene (pasado por doGet tras verificar token)
+  // podríamos filtrar por asignaciones. Por ahora (piloto) devolvemos
+  // todas las clases del colegio; la asignación por profe-a-grupo es
+  // una mejora futura (otra pestaña Asignaciones: token|classId).
   var ss = getSheet();
   var sheet = ss.getSheetByName('Clases');
   if (!sheet || sheet.getLastRow() < 2) return { ok: true, classes: [] };
@@ -341,10 +583,18 @@ function handlePushClasses(body) {
 // POST: PUSH ATTENDANCE
 // ═══════════════════════════════════
 
-function handlePushAttendance(body) {
+function handlePushAttendance(body, teacher) {
   var sheet = ensureTab('Asistencia', ASIST_HEADERS);
   var record = body.record;
   if (!record || !record.recordId) return { ok: false, error: 'Registro inválido' };
+
+  // Si tenemos el profe autenticado, reemplazamos/validamos los campos
+  // de facilitador para que no pueda impersonar a otro docente al enviar
+  // el payload.
+  if (teacher) {
+    record.facilitador    = teacher.nombre || record.facilitador || '';
+    record.facilitadorId  = teacher.idPersonal || record.facilitadorId || '';
+  }
 
   // Leer toda la hoja UNA vez y remover el recordId que estamos actualizando
   var lastRow = sheet.getLastRow();
