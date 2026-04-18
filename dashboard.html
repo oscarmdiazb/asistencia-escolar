@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     :root {
       --rojo:#E8302A; --naranja:#F47920; --amarillo:#F9C200;
@@ -93,6 +95,63 @@
     /* Refresh button */
     .btn-refresh{font-family:var(--fh);font-weight:700;background:none;border:2px solid rgba(255,255,255,.3);color:white;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:.8rem}
     .btn-refresh:hover{background:rgba(255,255,255,.1)}
+
+    /* KPI sublabel (alert definition, etc.) */
+    .kpi .sublabel{font-size:.68rem;color:var(--text2);margin-top:4px;font-style:italic;line-height:1.2}
+
+    /* Time series chart */
+    .ts-wrap{position:relative;width:100%;height:220px}
+    .ts-wrap svg{width:100%;height:100%;display:block}
+    .ts-tooltip{position:absolute;background:#1A1A2E;color:white;font-family:var(--fh);font-size:.72rem;padding:6px 10px;border-radius:6px;pointer-events:none;opacity:0;transition:opacity .15s;white-space:nowrap;z-index:10}
+    .ts-tooltip.visible{opacity:1}
+
+    /* Clickable rows */
+    tr.clickable{cursor:pointer}
+    tr.clickable:hover td{background:#EFF8FD}
+    .row-link{color:var(--azul);font-family:var(--fh);font-weight:700;font-size:.75rem;text-decoration:none}
+    .row-link:hover{text-decoration:underline}
+
+    /* Modal (student card) */
+    .modal-overlay{position:fixed;inset:0;background:rgba(10,20,40,.55);display:none;align-items:flex-start;justify-content:center;z-index:100;overflow-y:auto;padding:20px}
+    .modal-overlay.open{display:flex}
+    .modal{background:var(--white);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);max-width:780px;width:100%;margin:20px auto;overflow:hidden}
+    .modal-actions{display:flex;gap:8px;padding:12px 16px;background:var(--bg);border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center}
+    .modal-actions .spacer{flex:1}
+    .modal-actions button{font-family:var(--fh);font-weight:700;border:2px solid var(--border);background:var(--white);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:.82rem;color:var(--text)}
+    .modal-actions button.primary{background:var(--azul);color:white;border-color:var(--azul)}
+    .modal-actions button.primary:hover{opacity:.9}
+    .modal-actions button:hover{background:#F8F9FE}
+    .modal-actions button.close-btn{background:var(--rojo);color:white;border-color:var(--rojo)}
+
+    /* Ficha (student card body) — designed for 1-page PDF */
+    .ficha{padding:0;font-family:var(--fb)}
+    .ficha-head{background:linear-gradient(135deg,#1A2A4A 0%,#0D3559 100%);color:white;padding:20px 28px}
+    .ficha-head .brand{font-family:var(--fh);font-weight:900;font-size:1.3rem}
+    .ficha-head .brand .a{color:var(--rojo)} .ficha-head .brand .p{color:var(--azul)}
+    .ficha-head .subtitle{font-family:var(--fh);font-weight:700;font-size:1rem;margin-top:2px;opacity:.9}
+    .ficha-head .school{font-size:.82rem;opacity:.75;margin-top:6px}
+    .ficha-rb{height:4px;background:linear-gradient(to right,var(--rojo) 0%,var(--rojo) 16.6%,var(--naranja) 16.6%,var(--naranja) 33.3%,var(--amarillo) 33.3%,var(--amarillo) 50%,var(--verde) 50%,var(--verde) 66.6%,var(--azul) 66.6%,var(--azul) 83.3%,var(--morado) 83.3%,var(--morado) 100%)}
+    .ficha-body{padding:24px 28px}
+    .ficha-section{margin-bottom:20px}
+    .ficha-section h3{font-family:var(--fh);font-weight:800;font-size:.82rem;text-transform:uppercase;color:var(--text2);letter-spacing:.05em;margin-bottom:10px}
+    .ficha-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:.88rem}
+    .ficha-info .lbl{color:var(--text2);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
+    .ficha-info .val{font-family:var(--fh);font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:6px}
+    .ficha-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .ficha-kpi{background:var(--bg);border-radius:10px;padding:14px 10px;text-align:center}
+    .ficha-kpi .v{font-family:var(--fh);font-weight:900;font-size:1.6rem}
+    .ficha-kpi .l{font-size:.66rem;text-transform:uppercase;color:var(--text2);letter-spacing:.04em;margin-top:2px}
+    .ficha-dow{display:flex;gap:6px;align-items:flex-end;height:90px}
+    .ficha-dow .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;justify-content:flex-end}
+    .ficha-dow .col .bar{width:100%;background:var(--azul);border-radius:4px 4px 0 0;min-height:2px;position:relative}
+    .ficha-dow .col .bar .n{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-family:var(--fh);font-weight:800;font-size:.7rem;color:var(--text2)}
+    .ficha-dow .col .lbl{font-family:var(--fh);font-weight:700;font-size:.7rem;color:var(--text2)}
+    .ficha-hist{width:100%;font-size:.78rem;border-collapse:collapse}
+    .ficha-hist th{font-family:var(--fh);font-weight:700;text-transform:uppercase;font-size:.65rem;color:var(--text2);padding:6px 8px;border-bottom:2px solid var(--border);text-align:left;letter-spacing:.04em}
+    .ficha-hist td{padding:6px 8px;border-bottom:1px solid var(--border)}
+    .ficha-hist td.presente{color:var(--verde);font-weight:700}
+    .ficha-hist td.ausente{color:var(--rojo);font-weight:700}
+    .ficha-foot{padding:12px 28px;background:var(--bg);font-size:.7rem;color:var(--text2);display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)}
   </style>
 </head>
 <body>
@@ -137,9 +196,9 @@
       <!-- KPIs -->
       <div class="kpis">
         <div class="kpi"><div class="value" id="kpi-records" style="color:var(--azul)">0</div><div class="label">Sesiones registradas</div></div>
-        <div class="kpi"><div class="value" id="kpi-rate" style="color:var(--verde)">—</div><div class="label">% Asistencia</div></div>
+        <div class="kpi"><div class="value" id="kpi-rate" style="color:var(--verde)">—</div><div class="label">% Asistencia</div><div class="sublabel">Promedio ponderado en el período</div></div>
         <div class="kpi"><div class="value" id="kpi-classes" style="color:var(--morado)">0</div><div class="label">Clases activas</div></div>
-        <div class="kpi"><div class="value" id="kpi-alerts" style="color:var(--rojo)">0</div><div class="label">Alertas de ausencia</div></div>
+        <div class="kpi"><div class="value" id="kpi-alerts" style="color:var(--rojo)">0</div><div class="label">Alertas de ausencia</div><div class="sublabel">Estudiantes con 3+ ausencias</div></div>
       </div>
 
       <!-- Filters -->
@@ -151,6 +210,16 @@
         <input type="date" id="filter-from" onchange="renderDashboard()">
         <input type="date" id="filter-to" onchange="renderDashboard()">
         <button style="font-family:var(--fh);font-weight:700;background:var(--bg);border:2px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:.82rem" onclick="clearFilters()">Limpiar filtros</button>
+      </div>
+
+      <!-- Time series -->
+      <div class="card">
+        <div class="card-header"><h2>📈 Tendencia de asistencia</h2><span style="font-size:.72rem;color:var(--text2);font-weight:600" id="ts-subtitle"></span></div>
+        <div class="card-body">
+          <div class="ts-wrap" id="ts-wrap">
+            <div class="ts-tooltip" id="ts-tooltip"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Charts row -->
@@ -167,11 +236,25 @@
 
       <!-- Alerts table -->
       <div class="card" id="alerts-card">
-        <div class="card-header"><h2>⚠️ Alertas — Estudiantes con 3+ ausencias</h2></div>
+        <div class="card-header"><h2>⚠️ Alertas — Estudiantes con 3+ ausencias</h2><span style="font-size:.72rem;color:var(--text2);font-weight:600">Clic para ver ficha</span></div>
         <div class="card-body" style="padding:0;max-height:400px;overflow-y:auto">
           <table><thead><tr>
-            <th>Estudiante</th><th>SIMAT</th><th>Clase</th><th>Grado</th><th>Faltas</th><th>Última ausencia</th>
+            <th>Estudiante</th><th>SIMAT</th><th>Clase</th><th>Grado</th><th>Faltas</th><th>Última ausencia</th><th></th>
           </tr></thead><tbody id="alerts-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <!-- Student list -->
+      <div class="card">
+        <div class="card-header">
+          <h2>👥 Estudiantes</h2>
+          <input type="search" id="student-search" placeholder="Buscar por nombre o SIMAT…" oninput="renderStudentList()" style="font-family:var(--fb);font-size:.82rem;border:2px solid var(--border);border-radius:8px;padding:6px 10px;width:240px">
+          <span style="font-size:.72rem;color:var(--text2);font-weight:600" id="student-count"></span>
+        </div>
+        <div class="card-body" style="padding:0;max-height:500px;overflow-y:auto">
+          <table><thead><tr>
+            <th>Estudiante</th><th>SIMAT</th><th>Clase</th><th>Grado</th><th>Sesiones</th><th>Ausencias</th><th>% Asistencia</th><th>Última ausencia</th><th></th>
+          </tr></thead><tbody id="students-tbody"></tbody></table>
         </div>
       </div>
 
@@ -187,6 +270,20 @@
 
       <!-- Last updated -->
       <div style="text-align:center;padding:20px;font-size:.78rem;color:var(--text2)" id="last-updated"></div>
+    </div>
+  </div>
+
+  <!-- Student card modal -->
+  <div class="modal-overlay" id="student-modal" onclick="if(event.target===this) closeStudentCard()">
+    <div class="modal">
+      <div class="modal-actions">
+        <button class="primary" onclick="downloadFichaPDF()">⬇ Descargar PDF</button>
+        <button onclick="downloadFichaImage()">🖼 Descargar imagen</button>
+        <button onclick="window.print()">🖨 Imprimir</button>
+        <div class="spacer"></div>
+        <button class="close-btn" onclick="closeStudentCard()">✕ Cerrar</button>
+      </div>
+      <div id="ficha-container"></div>
     </div>
   </div>
 
@@ -497,18 +594,27 @@ function renderDashboard() {
     document.getElementById('alerts-card').style.display = 'block';
     atb.innerHTML = alerts.map(a => {
       const badgeCls = a.count >= 5 ? 'badge-red' : 'badge-orange';
-      return `<tr>
+      const simatAttr = a.simat ? ` onclick="openStudentCard('${esc(a.simat)}')"` : '';
+      const clickCls = a.simat ? 'clickable' : '';
+      return `<tr class="${clickCls}"${simatAttr}>
         <td><strong>${esc(a.apellidos)}</strong>, ${esc(a.nombre)}</td>
         <td>${esc(a.simat)}</td>
         <td>${esc(a.className)}</td>
         <td>${esc(a.grade)}</td>
         <td><span class="badge ${badgeCls}">${a.count}</span></td>
         <td>${a.lastDate ? fmtDate(a.lastDate) : ''}</td>
+        <td>${a.simat ? '<span class="row-link">Ver ficha →</span>' : ''}</td>
       </tr>`;
     }).join('');
   } else {
     document.getElementById('alerts-card').style.display = 'none';
   }
+
+  // ── Time series ──
+  renderTimeSeries(recs);
+
+  // ── Student list ──
+  renderStudentList();
 
   // ── Records table ──
   const rtb = document.getElementById('records-tbody');
@@ -534,6 +640,347 @@ function renderDashboard() {
   // Last updated
   document.getElementById('last-updated').textContent = 'Actualizado: ' + new Date().toLocaleString('es-CO');
 }
+
+// ═══════════════════════════════════
+// TIME SERIES (attendance % over time)
+// ═══════════════════════════════════
+function renderTimeSeries(recs) {
+  const wrap = document.getElementById('ts-wrap');
+  const tooltip = document.getElementById('ts-tooltip');
+  const sub = document.getElementById('ts-subtitle');
+
+  // Group by date: count present vs total
+  const byDate = {};
+  recs.forEach(r => {
+    if (!r.date) return;
+    const d = String(r.date).slice(0, 10);
+    if (!byDate[d]) byDate[d] = { present: 0, total: 0 };
+    byDate[d].total++;
+    if (r.estado !== 'Ausente') byDate[d].present++;
+  });
+  const points = Object.entries(byDate)
+    .map(([date, d]) => ({ date, pct: d.total ? (d.present / d.total * 100) : 0, present: d.present, total: d.total }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (!points.length) {
+    wrap.innerHTML = '<div class="empty-msg" style="padding:40px 20px">Sin datos para mostrar. La tendencia se construye sesión a sesión.</div>';
+    wrap.appendChild(tooltip);
+    sub.textContent = '';
+    return;
+  }
+
+  sub.textContent = points.length + (points.length === 1 ? ' día con registro' : ' días con registro');
+
+  // SVG viewport
+  const W = 800, H = 220, pad = { l: 48, r: 20, t: 20, b: 36 };
+  const innerW = W - pad.l - pad.r, innerH = H - pad.t - pad.b;
+  const xFor = i => pad.l + (points.length <= 1 ? innerW / 2 : (i / (points.length - 1)) * innerW);
+  const yFor = pct => pad.t + innerH - (pct / 100) * innerH;
+
+  // Gridlines + y labels
+  let grid = '';
+  [0, 25, 50, 75, 100].forEach(v => {
+    const y = yFor(v);
+    grid += `<line x1="${pad.l}" y1="${y}" x2="${W - pad.r}" y2="${y}" stroke="#E0E4EF" stroke-dasharray="${v === 0 || v === 100 ? '0' : '3,3'}"/>`;
+    grid += `<text x="${pad.l - 8}" y="${y + 4}" text-anchor="end" font-family="Nunito" font-weight="700" font-size="10" fill="#666677">${v}%</text>`;
+  });
+
+  // X labels (first, middle, last)
+  const xLabels = [];
+  const labelIdx = points.length <= 3 ? points.map((_, i) => i) : [0, Math.floor(points.length / 2), points.length - 1];
+  labelIdx.forEach(i => {
+    const x = xFor(i);
+    xLabels.push(`<text x="${x}" y="${H - 12}" text-anchor="middle" font-family="Nunito" font-weight="700" font-size="10" fill="#666677">${fmtDateShort(points[i].date)}</text>`);
+  });
+
+  // Polyline
+  const poly = points.map((p, i) => `${xFor(i)},${yFor(p.pct)}`).join(' ');
+  // Shaded area below line
+  const area = `M${xFor(0)},${yFor(0)} L` + points.map((p, i) => `${xFor(i)},${yFor(p.pct)}`).join(' L') + ` L${xFor(points.length - 1)},${yFor(0)} Z`;
+
+  // Dots
+  const dots = points.map((p, i) => {
+    const x = xFor(i), y = yFor(p.pct);
+    const color = p.pct >= 90 ? '#4BAD4E' : p.pct >= 75 ? '#F47920' : '#E8302A';
+    return `<circle cx="${x}" cy="${y}" r="5" fill="${color}" stroke="white" stroke-width="2" data-i="${i}" class="ts-dot" style="cursor:pointer"/>`;
+  }).join('');
+
+  wrap.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    ${grid}
+    <path d="${area}" fill="#3AABE3" fill-opacity="0.08"/>
+    <polyline points="${poly}" fill="none" stroke="#3AABE3" stroke-width="2.5" stroke-linejoin="round"/>
+    ${dots}
+    ${xLabels.join('')}
+  </svg>`;
+  wrap.appendChild(tooltip);
+
+  // Hover tooltip
+  wrap.querySelectorAll('.ts-dot').forEach(dot => {
+    dot.addEventListener('mouseenter', (e) => {
+      const p = points[parseInt(e.target.dataset.i)];
+      tooltip.textContent = `${fmtDate(p.date)} · ${Math.round(p.pct)}% (${p.present}/${p.total})`;
+      const wrapRect = wrap.getBoundingClientRect();
+      const dotRect = e.target.getBoundingClientRect();
+      tooltip.style.left = (dotRect.left - wrapRect.left + dotRect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+      tooltip.style.top = (dotRect.top - wrapRect.top - tooltip.offsetHeight - 8) + 'px';
+      tooltip.classList.add('visible');
+    });
+    dot.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
+  });
+}
+
+// ═══════════════════════════════════
+// STUDENT LIST (all students + stats)
+// ═══════════════════════════════════
+function renderStudentList() {
+  if (!DATA) return;
+  const recs = getFilteredRecords();
+  const tbody = document.getElementById('students-tbody');
+  const countEl = document.getElementById('student-count');
+  const search = (document.getElementById('student-search').value || '').trim().toLowerCase();
+
+  // Aggregate per student using filtered records
+  const stuMap = {};
+  recs.forEach(r => {
+    const key = r.simat || (r.apellido1 + '_' + r.nombre1 + '_' + r.classId);
+    if (!stuMap[key]) {
+      stuMap[key] = {
+        simat: r.simat || '',
+        apellidos: [r.apellido1, r.apellido2].filter(Boolean).join(' '),
+        nombre: [r.nombre1, r.nombre2].filter(Boolean).join(' '),
+        className: r.className || '',
+        grade: r.grade || '',
+        sessions: 0, absences: 0, lastAbs: ''
+      };
+    }
+    stuMap[key].sessions++;
+    if (r.estado === 'Ausente') {
+      stuMap[key].absences++;
+      if (r.date > stuMap[key].lastAbs) stuMap[key].lastAbs = r.date;
+    }
+  });
+  let students = Object.values(stuMap);
+
+  // Search filter
+  if (search) {
+    students = students.filter(s =>
+      (s.apellidos + ' ' + s.nombre).toLowerCase().includes(search) ||
+      (s.simat || '').toLowerCase().includes(search)
+    );
+  }
+
+  // Sort: most absences first, then by surname
+  students.sort((a, b) => b.absences - a.absences || a.apellidos.localeCompare(b.apellidos));
+
+  countEl.textContent = students.length + (students.length === 1 ? ' estudiante' : ' estudiantes');
+
+  tbody.innerHTML = students.length
+    ? students.map(s => {
+        const rate = s.sessions ? Math.round((s.sessions - s.absences) / s.sessions * 100) : 0;
+        const rateCls = rate >= 90 ? 'badge-green' : rate >= 75 ? 'badge-orange' : 'badge-red';
+        const absCls = s.absences >= 5 ? 'badge-red' : s.absences >= 3 ? 'badge-orange' : '';
+        const clickable = s.simat ? `class="clickable" onclick="openStudentCard('${esc(s.simat)}')"` : '';
+        return `<tr ${clickable}>
+          <td><strong>${esc(s.apellidos)}</strong>, ${esc(s.nombre)}</td>
+          <td>${esc(s.simat)}</td>
+          <td>${esc(s.className)}</td>
+          <td>${esc(s.grade)}</td>
+          <td>${s.sessions}</td>
+          <td>${absCls ? `<span class="badge ${absCls}">${s.absences}</span>` : s.absences}</td>
+          <td><span class="badge ${rateCls}">${rate}%</span></td>
+          <td>${s.lastAbs ? fmtDate(s.lastAbs) : '—'}</td>
+          <td>${s.simat ? '<span class="row-link">Ver ficha →</span>' : ''}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="9" class="empty-msg">Sin estudiantes que coincidan con la búsqueda.</td></tr>';
+}
+
+// ═══════════════════════════════════
+// FICHA DEL ESTUDIANTE (modal)
+// ═══════════════════════════════════
+let CURRENT_FICHA_STUDENT = null;
+
+function openStudentCard(simat) {
+  if (!DATA || !simat) return;
+  // Pull ALL records for this student (ignore filters except school scope)
+  const allRecs = DATA.records.filter(r => String(r.simat) === String(simat));
+  if (!allRecs.length) { alert('Este estudiante no tiene registros.'); return; }
+
+  const r0 = allRecs[0];
+  const student = {
+    simat: String(simat),
+    apellidos: [r0.apellido1, r0.apellido2].filter(Boolean).join(' '),
+    nombre: [r0.nombre1, r0.nombre2].filter(Boolean).join(' '),
+    className: r0.className || '',
+    grade: r0.grade || '',
+    sede: r0.sede || '',
+    jornada: r0.jornada || ''
+  };
+
+  const sessions = allRecs.length;
+  const absences = allRecs.filter(r => r.estado === 'Ausente').length;
+  const present = sessions - absences;
+  const rate = sessions ? Math.round(present / sessions * 100) : 0;
+
+  // Day-of-week breakdown of ABSENCES
+  const dowLbl = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const dowAbs = [0,0,0,0,0,0,0];
+  allRecs.forEach(r => {
+    if (r.estado !== 'Ausente' || !r.date) return;
+    const [y,m,d] = String(r.date).slice(0,10).split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m-1, d));
+    dowAbs[dt.getUTCDay()]++;
+  });
+  const maxDow = Math.max(1, ...dowAbs);
+
+  // History sorted newest first
+  const hist = [...allRecs].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  const rateColor = rate >= 90 ? '#4BAD4E' : rate >= 75 ? '#F47920' : '#E8302A';
+
+  const html = `
+    <div class="ficha" id="ficha-printable">
+      <div class="ficha-head">
+        <div class="brand"><span class="a">Aula</span><span class="p">Presente</span></div>
+        <div class="subtitle">Ficha de asistencia</div>
+        <div class="school">${esc(DATA.schoolName || '')}${DATA.schoolCode ? ' · ' + esc(DATA.schoolCode) : ''}</div>
+      </div>
+      <div class="ficha-rb"></div>
+      <div class="ficha-body">
+        <div class="ficha-section">
+          <h3>Datos del estudiante</h3>
+          <div class="ficha-info">
+            <div><div class="lbl">Nombre completo</div><div class="val">${esc(student.apellidos)}, ${esc(student.nombre)}</div></div>
+            <div><div class="lbl">N.º SIMAT</div><div class="val">${esc(student.simat)}</div></div>
+            <div><div class="lbl">Clase</div><div class="val">${esc(student.className) || '—'}</div></div>
+            <div><div class="lbl">Grado</div><div class="val">${esc(student.grade) || '—'}</div></div>
+            ${student.sede ? `<div><div class="lbl">Sede</div><div class="val">${esc(student.sede)}</div></div>` : ''}
+            ${student.jornada ? `<div><div class="lbl">Jornada</div><div class="val">${esc(student.jornada)}</div></div>` : ''}
+          </div>
+        </div>
+
+        <div class="ficha-section">
+          <h3>Resumen</h3>
+          <div class="ficha-kpis">
+            <div class="ficha-kpi"><div class="v" style="color:var(--azul)">${sessions}</div><div class="l">Sesiones</div></div>
+            <div class="ficha-kpi"><div class="v" style="color:var(--verde)">${present}</div><div class="l">Presentes</div></div>
+            <div class="ficha-kpi"><div class="v" style="color:var(--rojo)">${absences}</div><div class="l">Ausencias</div></div>
+            <div class="ficha-kpi"><div class="v" style="color:${rateColor}">${rate}%</div><div class="l">Asistencia</div></div>
+          </div>
+        </div>
+
+        ${absences > 0 ? `
+        <div class="ficha-section">
+          <h3>Ausencias por día de la semana</h3>
+          <div class="ficha-dow">
+            ${[1,2,3,4,5,6,0].map(idx => {
+              const h = dowAbs[idx] > 0 ? Math.max(8, (dowAbs[idx] / maxDow) * 70) : 2;
+              return `<div class="col">
+                <div class="bar" style="height:${h}px;${dowAbs[idx] === 0 ? 'background:var(--border)' : ''}">${dowAbs[idx] > 0 ? `<span class="n">${dowAbs[idx]}</span>` : ''}</div>
+                <div class="lbl">${dowLbl[idx]}</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
+
+        <div class="ficha-section">
+          <h3>Historial (${sessions} ${sessions === 1 ? 'sesión' : 'sesiones'})</h3>
+          <table class="ficha-hist">
+            <thead><tr><th>Fecha</th><th>Evento</th><th>Franja</th><th>Docente</th><th>Estado</th></tr></thead>
+            <tbody>
+              ${hist.slice(0, 30).map(r => `
+                <tr>
+                  <td>${fmtDate(r.date)}</td>
+                  <td>${esc(r.eventName) || '—'}</td>
+                  <td>${esc(r.slotLabel) || '—'}</td>
+                  <td>${esc(r.facilitador) || '—'}</td>
+                  <td class="${r.estado === 'Ausente' ? 'ausente' : 'presente'}">${esc(r.estado)}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+          ${hist.length > 30 ? `<div style="font-size:.7rem;color:var(--text2);margin-top:6px;font-style:italic">Mostrando las 30 sesiones más recientes de ${hist.length} en total.</div>` : ''}
+        </div>
+      </div>
+      <div class="ficha-foot">
+        <span>Generado el ${new Date().toLocaleDateString('es-CO', { day:'numeric', month:'long', year:'numeric' })}</span>
+        <span>AulaPresente</span>
+      </div>
+    </div>
+  `;
+
+  CURRENT_FICHA_STUDENT = student;
+  document.getElementById('ficha-container').innerHTML = html;
+  document.getElementById('student-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeStudentCard() {
+  document.getElementById('student-modal').classList.remove('open');
+  document.body.style.overflow = '';
+  CURRENT_FICHA_STUDENT = null;
+}
+
+function fichaFilename(ext) {
+  const s = CURRENT_FICHA_STUDENT;
+  if (!s) return 'ficha.' + ext;
+  const name = (s.apellidos + '_' + s.nombre).replace(/\s+/g, '_').replace(/[^\w\-]/g, '');
+  return 'Ficha_' + name + '_' + s.simat + '.' + ext;
+}
+
+async function downloadFichaImage() {
+  const node = document.getElementById('ficha-printable');
+  if (!node) return;
+  const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+  const link = document.createElement('a');
+  link.href = canvas.toDataURL('image/png');
+  link.download = fichaFilename('png');
+  link.click();
+}
+
+async function downloadFichaPDF() {
+  const node = document.getElementById('ficha-printable');
+  if (!node) return;
+  const canvas = await html2canvas(node, { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+  const imgData = canvas.toDataURL('image/png');
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' });
+  const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
+  const margin = 10;
+  const availW = pageW - margin * 2;
+  const imgH = (canvas.height * availW) / canvas.width;
+  if (imgH <= pageH - margin * 2) {
+    pdf.addImage(imgData, 'PNG', margin, margin, availW, imgH);
+  } else {
+    // Multi-page: slice by height
+    const pxPerMm = canvas.width / availW;
+    const pageImgH = (pageH - margin * 2) * pxPerMm;
+    let srcY = 0;
+    while (srcY < canvas.height) {
+      const sliceH = Math.min(pageImgH, canvas.height - srcY);
+      const slice = document.createElement('canvas');
+      slice.width = canvas.width; slice.height = sliceH;
+      slice.getContext('2d').drawImage(canvas, 0, srcY, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+      const sliceMm = sliceH / pxPerMm;
+      pdf.addImage(slice.toDataURL('image/png'), 'PNG', margin, margin, availW, sliceMm);
+      srcY += pageImgH;
+      if (srcY < canvas.height) pdf.addPage();
+    }
+  }
+  pdf.save(fichaFilename('pdf'));
+}
+
+function fmtDateShort(iso) {
+  if (!iso) return '';
+  const [y, m, d] = String(iso).split('-');
+  const months = ['','ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return parseInt(d) + ' ' + (months[parseInt(m)] || m);
+}
+
+// Escape-key closes modal
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeStudentCard();
+});
 
 // ── Helpers ──
 function esc(s) {
