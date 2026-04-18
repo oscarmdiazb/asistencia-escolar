@@ -28,12 +28,21 @@
       var(--azul) 66.6%,var(--azul) 83.3%,var(--morado) 83.3%,var(--morado) 100%)}
 
     /* Header */
-    .header{background:linear-gradient(135deg,#1A2A4A 0%,#0D3559 100%);color:white;padding:20px 24px}
-    .header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-    .header h1{font-family:var(--fh);font-weight:900;font-size:1.4rem;flex:1}
-    .header h1 span:first-child{color:var(--rojo)} .header h1 span:last-child{color:var(--azul)}
-    .header-info{font-size:.85rem;opacity:.8}
-    .header-code{font-family:var(--fh);font-weight:900;font-size:1.1rem;background:rgba(255,255,255,.15);padding:6px 14px;border-radius:8px;letter-spacing:.05em}
+    .header{background:linear-gradient(135deg,#1A2A4A 0%,#0D3559 100%);color:white;padding:18px 24px}
+    .header-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+    .brand-block{display:flex;flex-direction:column;line-height:1.05}
+    .brand-logo{font-family:var(--fh);font-weight:900;font-size:1.55rem;letter-spacing:-.01em}
+    .brand-logo .a{color:var(--rojo)} .brand-logo .p{color:var(--azul)}
+    .brand-sub{font-family:var(--fh);font-weight:800;font-size:.68rem;opacity:.65;text-transform:uppercase;letter-spacing:.18em;margin-top:4px}
+    .header-divider{width:1px;align-self:stretch;background:rgba(255,255,255,.15);min-height:36px}
+    .school-block{flex:1;min-width:180px;display:flex;flex-direction:column;gap:4px}
+    .school-lbl{font-family:var(--fh);font-weight:800;font-size:.6rem;opacity:.55;text-transform:uppercase;letter-spacing:.14em}
+    .school-name-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .school-name{font-family:var(--fh);font-weight:700;font-size:.95rem;color:white}
+    .school-code{font-family:var(--fh);font-weight:900;font-size:.7rem;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.22);padding:3px 10px;border-radius:6px;letter-spacing:.1em}
+    .header-actions{display:flex;gap:8px}
+    .btn-hdr{font-family:var(--fh);font-weight:800;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.22);color:white;border-radius:8px;padding:9px 14px;cursor:pointer;font-size:.82rem;transition:all .15s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+    .btn-hdr:hover{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4)}
 
     /* Connect form */
     .connect-bar{max-width:1200px;margin:20px auto;padding:0 24px}
@@ -152,19 +161,107 @@
     .ficha-hist td.presente{color:var(--verde);font-weight:700}
     .ficha-hist td.ausente{color:var(--rojo);font-weight:700}
     .ficha-foot{padding:12px 28px;background:var(--bg);font-size:.7rem;color:var(--text2);display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)}
+
+    /* Tables: horizontal scroll on narrow screens */
+    .card-body.tbl-wrap{padding:0;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .card-body.tbl-wrap table{min-width:640px}
+
+    /* ═════════ MOBILE RESPONSIVE ═════════ */
+    @media (max-width:720px){
+      .header{padding:14px 16px}
+      .header-inner{gap:12px}
+      .brand-logo{font-size:1.35rem}
+      .brand-block{flex:0 0 auto}
+      .header-divider{display:none !important}
+      .school-block{order:3;width:100%;min-width:0}
+      .school-name{white-space:normal;font-size:.88rem;line-height:1.25}
+      .header-actions{margin-left:auto}
+      .btn-hdr{padding:8px 10px;font-size:.95rem}
+      .btn-hdr .btn-lbl{display:none}
+
+      .main{padding:14px 14px}
+      .connect-bar{padding:0 14px;margin-top:14px}
+      .connect-form{padding:14px;gap:8px}
+      .connect-form input{width:100% !important;font-size:.82rem}
+      .connect-form label{font-size:.82rem}
+
+      .kpis{grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+      .kpi{padding:14px 10px}
+      .kpi .value{font-size:1.55rem}
+      .kpi .label{font-size:.66rem}
+      .kpi .sublabel{font-size:.62rem}
+
+      .card-header{padding:12px 14px;flex-wrap:wrap}
+      .card-header h2{font-size:.92rem;flex:1 1 100%}
+      .card-body{padding:12px 14px}
+      .card-header input[type="search"]{width:100% !important;margin-top:6px}
+
+      .filters{gap:8px}
+      .filters select,.filters input{font-size:.82rem;padding:7px 10px;min-width:0;flex:1 1 calc(50% - 4px)}
+      .filters button{flex:1 1 100%}
+
+      /* Tables scroll horizontally on mobile */
+      .card-body[style*="max-height"],.card-body{overflow-x:auto}
+      table{min-width:560px}
+      th,td{padding:8px 10px;font-size:.78rem}
+
+      /* Bar chart labels shrink */
+      .bar-label{width:90px;font-size:.72rem}
+      .bar-val{width:78px;font-size:.68rem}
+
+      /* Time series */
+      .ts-wrap{height:180px}
+
+      /* Modal → almost fullscreen */
+      .modal-overlay{padding:0;align-items:stretch}
+      .modal{margin:0;border-radius:0;max-width:100%;min-height:100vh}
+      .modal-actions{padding:10px;gap:6px}
+      .modal-actions button{flex:1 1 calc(50% - 3px);padding:9px 8px;font-size:.78rem;justify-content:center;min-width:0}
+      .modal-actions .spacer{display:none}
+      .modal-actions button.close-btn{flex:1 1 100%;order:99}
+
+      /* Ficha internals on mobile */
+      .ficha-head{padding:16px 18px}
+      .ficha-head .brand{font-size:1.15rem}
+      .ficha-body{padding:18px}
+      .ficha-info{grid-template-columns:1fr;gap:4px 12px}
+      .ficha-info .val{font-size:.9rem}
+      .ficha-kpis{grid-template-columns:repeat(2,1fr);gap:8px}
+      .ficha-kpi{padding:12px 8px}
+      .ficha-kpi .v{font-size:1.35rem}
+      .ficha-hist{font-size:.72rem}
+      .ficha-hist th,.ficha-hist td{padding:5px 6px}
+      .ficha-foot{padding:12px 18px;font-size:.65rem;flex-wrap:wrap;gap:4px}
+    }
+
+    @media (max-width:420px){
+      .kpis{grid-template-columns:1fr 1fr}
+      .filters select,.filters input{flex:1 1 100%}
+      .brand-logo{font-size:1.2rem}
+      .brand-sub{font-size:.62rem}
+    }
   </style>
 </head>
 <body>
   <div class="rb"></div>
   <div class="header">
     <div class="header-inner">
-      <h1><span>Aula</span><span>Presente</span> — Dashboard</h1>
-      <div id="header-school" style="display:none">
-        <span class="header-info" id="school-name-display"></span>
-        <span class="header-code" id="school-code-display"></span>
+      <div class="brand-block">
+        <div class="brand-logo"><span class="a">Aula</span><span class="p">Presente</span></div>
+        <div class="brand-sub">Dashboard</div>
       </div>
-      <button class="btn-refresh" onclick="refreshData()">🔄 Actualizar</button>
-      <button class="btn-refresh" onclick="disconnect()" id="btn-disconnect" style="display:none;margin-left:8px">↩ Cambiar colegio</button>
+      <div class="header-divider" id="header-divider" style="display:none"></div>
+      <div class="school-block" id="header-school" style="display:none">
+        <div class="school-lbl">Colegio</div>
+        <div class="school-name-row">
+          <div class="school-name" id="school-name-display"></div>
+          <div class="school-code" id="school-code-display"></div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-hdr" onclick="refreshData()" title="Actualizar datos">🔄 <span class="btn-lbl">Actualizar</span></button>
+        <button class="btn-hdr" onclick="disconnect()" id="btn-disconnect" style="display:none" title="Cambiar colegio">↩ <span class="btn-lbl">Cambiar colegio</span></button>
+      </div>
     </div>
   </div>
 
@@ -204,6 +301,7 @@
       <!-- Filters -->
       <div class="filters">
         <select id="filter-class" onchange="renderDashboard()"><option value="">Todas las clases</option></select>
+        <select id="filter-jornada" onchange="renderDashboard()"><option value="">Todas las jornadas</option></select>
         <select id="filter-event" onchange="renderDashboard()"><option value="">Todos los eventos</option></select>
         <select id="filter-teacher" onchange="renderDashboard()"><option value="">Todos los docentes</option></select>
         <select id="filter-student" onchange="renderDashboard()"><option value="">Todos los estudiantes</option></select>
@@ -247,9 +345,9 @@
       <!-- Detailed records -->
       <div class="card">
         <div class="card-header"><h2>📋 Registros detallados</h2></div>
-        <div class="card-body" style="padding:0;max-height:500px;overflow-y:auto">
+        <div class="card-body" style="padding:0;max-height:500px;overflow:auto">
           <table><thead><tr>
-            <th>Fecha</th><th>Clase</th><th>Grado</th><th>Evento</th><th>Franja</th><th>Docente</th><th>Presentes</th><th>Ausentes</th><th>Tasa</th>
+            <th>Fecha</th><th>Clase</th><th>Grado</th><th>Jornada</th><th>Evento</th><th>Franja</th><th>Docente</th><th>Presentes</th><th>Ausentes</th><th>Tasa</th>
           </tr></thead><tbody id="records-tbody"></tbody></table>
         </div>
       </div>
@@ -261,9 +359,9 @@
           <input type="search" id="student-search" placeholder="Buscar por nombre o SIMAT…" oninput="renderStudentList()" style="font-family:var(--fb);font-size:.82rem;border:2px solid var(--border);border-radius:8px;padding:6px 10px;width:240px">
           <span style="font-size:.72rem;color:var(--text2);font-weight:600" id="student-count"></span>
         </div>
-        <div class="card-body" style="padding:0;max-height:500px;overflow-y:auto">
+        <div class="card-body" style="padding:0;max-height:500px;overflow:auto">
           <table><thead><tr>
-            <th>Estudiante</th><th>SIMAT</th><th>Clase</th><th>Grado</th><th>Sesiones</th><th>Ausencias</th><th>% Asistencia</th><th>Última ausencia</th><th></th>
+            <th>Estudiante</th><th>SIMAT</th><th>Clase</th><th>Grado</th><th>Jornada</th><th>Sesiones</th><th>Ausencias</th><th>% Asistencia</th><th>Última ausencia</th><th></th>
           </tr></thead><tbody id="students-tbody"></tbody></table>
         </div>
       </div>
@@ -381,9 +479,10 @@ async function connectAndLoad() {
 
     // Show header info + "Cambiar colegio" button
     document.getElementById('header-school').style.display = 'flex';
+    document.getElementById('header-divider').style.display = 'block';
     document.getElementById('school-name-display').textContent = result.schoolName || '';
     document.getElementById('school-code-display').textContent = result.schoolCode || '';
-    document.getElementById('btn-disconnect').style.display = 'inline-block';
+    document.getElementById('btn-disconnect').style.display = 'inline-flex';
 
     // Populate filters
     populateFilters();
@@ -419,6 +518,7 @@ function disconnect() {
   document.getElementById('admin-token-input').value = '';
   document.getElementById('connect-error').textContent = '';
   document.getElementById('header-school').style.display = 'none';
+  document.getElementById('header-divider').style.display = 'none';
   document.getElementById('school-name-display').textContent = '';
   document.getElementById('school-code-display').textContent = '';
   document.getElementById('btn-disconnect').style.display = 'none';
@@ -432,6 +532,7 @@ function showError(msg) {
 
 function clearFilters() {
   document.getElementById('filter-class').value = '';
+  document.getElementById('filter-jornada').value = '';
   document.getElementById('filter-event').value = '';
   document.getElementById('filter-teacher').value = '';
   document.getElementById('filter-student').value = '';
@@ -447,6 +548,12 @@ function populateFilters() {
   document.getElementById('filter-class').innerHTML =
     '<option value="">Todas las clases</option>' +
     classNames.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
+
+  // Jornadas
+  const jornadas = [...new Set(DATA.records.map(r => r.jornada).filter(Boolean))].sort();
+  document.getElementById('filter-jornada').innerHTML =
+    '<option value="">Todas las jornadas</option>' +
+    jornadas.map(j => `<option value="${esc(j)}">${esc(j)}</option>`).join('');
 
   // Events
   const events = [...new Set(DATA.records.map(r => r.eventName).filter(Boolean))].sort();
@@ -479,6 +586,7 @@ function getFilteredRecords() {
   let recs = DATA.records;
 
   const fc = document.getElementById('filter-class').value;
+  const fj = document.getElementById('filter-jornada').value;
   const fe = document.getElementById('filter-event').value;
   const ft = document.getElementById('filter-teacher').value;
   const fs = document.getElementById('filter-student').value;
@@ -486,6 +594,7 @@ function getFilteredRecords() {
   const to = document.getElementById('filter-to').value;
 
   if (fc) recs = recs.filter(r => r.className === fc);
+  if (fj) recs = recs.filter(r => r.jornada === fj);
   if (fe) recs = recs.filter(r => r.eventName === fe);
   if (ft) recs = recs.filter(r => r.facilitador === ft);
   if (fs) recs = recs.filter(r => r.simat === fs);
@@ -631,6 +740,7 @@ function renderDashboard() {
           <td>${fmtDate(s.date)}</td>
           <td>${esc(s.className)}</td>
           <td>${esc(s.grade)}</td>
+          <td>${esc(s.jornada)}</td>
           <td>${esc(s.eventName)}</td>
           <td>${esc(s.slotLabel)}</td>
           <td>${esc(s.facilitador)}</td>
@@ -639,7 +749,7 @@ function renderDashboard() {
           <td><span class="badge ${badgeCls}">${pct}%</span></td>
         </tr>`;
       }).join('')
-    : '<tr><td colspan="9" class="empty-msg">Sin registros</td></tr>';
+    : '<tr><td colspan="10" class="empty-msg">Sin registros</td></tr>';
 
   // Last updated
   document.getElementById('last-updated').textContent = 'Actualizado: ' + new Date().toLocaleString('es-CO');
@@ -754,6 +864,7 @@ function renderStudentList() {
         nombre: [r.nombre1, r.nombre2].filter(Boolean).join(' '),
         className: r.className || '',
         grade: r.grade || '',
+        jornada: r.jornada || '',
         sessions: 0, absences: 0, lastAbs: ''
       };
     }
@@ -789,6 +900,7 @@ function renderStudentList() {
           <td>${esc(s.simat)}</td>
           <td>${esc(s.className)}</td>
           <td>${esc(s.grade)}</td>
+          <td>${esc(s.jornada)}</td>
           <td>${s.sessions}</td>
           <td>${absCls ? `<span class="badge ${absCls}">${s.absences}</span>` : s.absences}</td>
           <td><span class="badge ${rateCls}">${rate}%</span></td>
@@ -796,7 +908,7 @@ function renderStudentList() {
           <td>${s.simat ? '<span class="row-link">Ver ficha →</span>' : ''}</td>
         </tr>`;
       }).join('')
-    : '<tr><td colspan="9" class="empty-msg">Sin estudiantes que coincidan con la búsqueda.</td></tr>';
+    : '<tr><td colspan="10" class="empty-msg">Sin estudiantes que coincidan con la búsqueda.</td></tr>';
 }
 
 // ═══════════════════════════════════
