@@ -225,7 +225,7 @@
       <!-- Charts row -->
       <div class="grid-2">
         <div class="card">
-          <div class="card-header"><h2>Ausencias por clase</h2></div>
+          <div class="card-header"><h2>Ausencia promedio por clase</h2></div>
           <div class="card-body" id="chart-by-class"></div>
         </div>
         <div class="card">
@@ -244,6 +244,16 @@
         </div>
       </div>
 
+      <!-- Detailed records -->
+      <div class="card">
+        <div class="card-header"><h2>📋 Registros detallados</h2></div>
+        <div class="card-body" style="padding:0;max-height:500px;overflow-y:auto">
+          <table><thead><tr>
+            <th>Fecha</th><th>Clase</th><th>Grado</th><th>Evento</th><th>Franja</th><th>Docente</th><th>Presentes</th><th>Ausentes</th><th>Tasa</th>
+          </tr></thead><tbody id="records-tbody"></tbody></table>
+        </div>
+      </div>
+
       <!-- Student list -->
       <div class="card">
         <div class="card-header">
@@ -255,16 +265,6 @@
           <table><thead><tr>
             <th>Estudiante</th><th>SIMAT</th><th>Clase</th><th>Grado</th><th>Sesiones</th><th>Ausencias</th><th>% Asistencia</th><th>Última ausencia</th><th></th>
           </tr></thead><tbody id="students-tbody"></tbody></table>
-        </div>
-      </div>
-
-      <!-- Detailed records -->
-      <div class="card">
-        <div class="card-header"><h2>📋 Registros detallados</h2></div>
-        <div class="card-body" style="padding:0;max-height:500px;overflow-y:auto">
-          <table><thead><tr>
-            <th>Fecha</th><th>Clase</th><th>Grado</th><th>Evento</th><th>Franja</th><th>Docente</th><th>Presentes</th><th>Ausentes</th><th>Tasa</th>
-          </tr></thead><tbody id="records-tbody"></tbody></table>
         </div>
       </div>
 
@@ -552,18 +552,22 @@ function renderDashboard() {
     byClass[s.className].present += s.present;
     byClass[s.className].absent += s.absent;
   });
-  const classEntries = Object.entries(byClass).sort((a, b) => b[1].absent - a[1].absent);
-  const maxClassAbs = classEntries.length ? classEntries[0][1].absent : 1;
+  // Sort by absence RATE (descending), not by absolute count
+  const classEntries = Object.entries(byClass).sort((a, b) => {
+    const ra = (a[1].present + a[1].absent) ? a[1].absent / (a[1].present + a[1].absent) : 0;
+    const rb = (b[1].present + b[1].absent) ? b[1].absent / (b[1].present + b[1].absent) : 0;
+    return rb - ra;
+  });
 
   document.getElementById('chart-by-class').innerHTML = classEntries.length
     ? '<div class="bar-chart">' + classEntries.map(([name, d]) => {
-        const pct = Math.round(d.absent / Math.max(maxClassAbs, 1) * 100);
         const total = d.present + d.absent;
         const absPct = total ? Math.round(d.absent / total * 100) : 0;
+        const color = absPct > 20 ? 'var(--rojo)' : absPct > 10 ? 'var(--naranja)' : 'var(--amarillo)';
         return `<div class="bar-row">
           <div class="bar-label" title="${esc(name)}">${esc(name)}</div>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${absPct > 20 ? 'var(--rojo)' : absPct > 10 ? 'var(--naranja)' : 'var(--amarillo)'}"></div></div>
-          <div class="bar-val">${d.absent} (${absPct}%)</div>
+          <div class="bar-track"><div class="bar-fill" style="width:${absPct}%;background:${color}"></div></div>
+          <div class="bar-val" style="width:110px;text-align:right">${d.absent}/${total} (${absPct}%)</div>
         </div>`;
       }).join('') + '</div>'
     : '<div class="empty-msg">Sin datos</div>';
