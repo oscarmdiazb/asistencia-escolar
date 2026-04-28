@@ -310,6 +310,15 @@
         <button style="font-family:var(--fh);font-weight:700;background:var(--bg);border:2px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:.82rem" onclick="clearFilters()">Limpiar filtros</button>
       </div>
 
+      <!-- Por revisar (reportados + no listados) -->
+      <div class="card" id="review-card" style="display:none;border-left:4px solid var(--naranja)">
+        <div class="card-header">
+          <h2>🚩 Estudiantes por revisar</h2>
+          <span style="font-size:.72rem;color:var(--text2);font-weight:600" id="review-subtitle"></span>
+        </div>
+        <div class="card-body" id="review-body" style="padding:0"></div>
+      </div>
+
       <!-- Time series -->
       <div class="card">
         <div class="card-header"><h2>📈 Tendencia de asistencia</h2><span style="font-size:.72rem;color:var(--text2);font-weight:600" id="ts-subtitle"></span></div>
@@ -609,6 +618,9 @@ function renderDashboard() {
   const recs = getFilteredRecords();
 
   // ── Aggregate into sessions (group by recordId) ──
+  // 'Reportado' es una categoría aparte: no es presente ni ausente. No
+  // entra en la tasa de asistencia. Se contabiliza solo en la sección
+  // "Estudiantes por revisar".
   const sessions = {};
   recs.forEach(r => {
     if (!sessions[r.recordId]) {
@@ -618,6 +630,7 @@ function renderDashboard() {
         facilitador: r.facilitador, present: 0, absent: 0, grade: r.grade || '', sede: r.sede || '', jornada: r.jornada || ''
       };
     }
+    if (r.estado === 'Reportado') return;
     if (r.estado === 'Ausente') sessions[r.recordId].absent++;
     else sessions[r.recordId].present++;
   });
@@ -726,6 +739,9 @@ function renderDashboard() {
   // ── Time series ──
   renderTimeSeries(recs);
 
+  // ── Estudiantes por revisar (reportados + no listados) ──
+  renderReview(recs);
+
   // ── Student list ──
   renderStudentList();
 
@@ -764,9 +780,11 @@ function renderTimeSeries(recs) {
   const sub = document.getElementById('ts-subtitle');
 
   // Group by date: count present vs total
+  // Reportado se excluye del total porque no representa asistencia real.
   const byDate = {};
   recs.forEach(r => {
     if (!r.date) return;
+    if (r.estado === 'Reportado') return;
     const d = String(r.date).slice(0, 10);
     if (!byDate[d]) byDate[d] = { present: 0, total: 0 };
     byDate[d].total++;
@@ -844,6 +862,128 @@ function renderTimeSeries(recs) {
 }
 
 // ═══════════════════════════════════
+// POR REVISAR — reportados como "no listados" + estudiantes agregados
+// ═══════════════════════════════════
+//
+// Dos categorías:
+//   1) Sobran  = filas con estado === 'Reportado'
+//      → estudiante en el roster que un profe marcó como "no debería estar"
+//   2) Faltan  = filas con SIMAT vacío o que empieza con 'TMP-'
+//      → estudiante que el profe agregó en el aula porque no estaba en lista
+//
+// Resolución: Oscar edita el Sheet `Clases` directamente (borrar fila para
+// el "sobra", agregar fila con SIMAT real para el "falta"). Esta sección es
+// solo señalización; no hay endpoint de resolución.
+function renderReview(recs) {
+  const card = document.getElementById('review-card');
+  const body = document.getElementById('review-body');
+  const sub  = document.getElementById('review-subtitle');
+
+  const isExtra = simat => !simat || /^TMP-/i.test(String(simat));
+
+  // Agrupar "sobran" por SIMAT (el mismo estudiante reportado por varios
+  // profes o varias veces aparece como una sola tarjeta con conteo).
+  const sobranMap = {};
+  // Agrupar "faltan" por (className + nombre completo) — el tempId cambia
+  // por sesión así que no sirve como llave estable.
+  const faltanMap = {};
+
+  recs.forEach(r => {
+    if (r.estado === 'Reportado' && !isExtra(r.simat)) {
+      const key = String(r.simat);
+      if (!sobranMap[key]) {
+        sobranMap[key] = {
+          simat: r.simat,
+          apellidos: [r.apellido1, r.apellido2].filter(Boolean).join(' '),
+          nombre: [r.nombre1, r.nombre2].filter(Boolean).join(' '),
+          className: r.className, grade: r.grade, jornada: r.jornada,
+          teachers: new Set(), dates: new Set(), comentarios: []
+        };
+      }
+      sobranMap[key].teachers.add(r.facilitador || '(sin nombre)');
+      sobranMap[key].dates.add(String(r.date).slice(0, 10));
+      if (r.comentario) sobranMap[key].comentarios.push(r.comentario);
+    }
+    if (isExtra(r.simat)) {
+      const fullName = [r.apellido1, r.apellido2, r.nombre1, r.nombre2].filter(Boolean).join(' ').toUpperCase();
+      const key = (r.className || '') + '|' + fullName;
+      if (!faltanMap[key]) {
+        faltanMap[key] = {
+          apellidos: [r.apellido1, r.apellido2].filter(Boolean).join(' '),
+          nombre: [r.nombre1, r.nombre2].filter(Boolean).join(' '),
+          className: r.className, grade: r.grade, jornada: r.jornada,
+          teachers: new Set(), dates: new Set(), comentarios: [],
+          tempIds: new Set()
+        };
+      }
+      faltanMap[key].teachers.add(r.facilitador || '(sin nombre)');
+      faltanMap[key].dates.add(String(r.date).slice(0, 10));
+      if (r.comentario) faltanMap[key].comentarios.push(r.comentario);
+      if (r.simat) faltanMap[key].tempIds.add(String(r.simat));
+    }
+  });
+
+  const sobran = Object.values(sobranMap)
+    .sort((a, b) => b.dates.size - a.dates.size || b.teachers.size - a.teachers.size);
+  const faltan = Object.values(faltanMap)
+    .sort((a, b) => b.dates.size - a.dates.size);
+
+  if (!sobran.length && !faltan.length) {
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = 'block';
+  sub.textContent = (sobran.length ? sobran.length + ' por dar de baja' : '') +
+                    (sobran.length && faltan.length ? ' · ' : '') +
+                    (faltan.length ? faltan.length + ' por agregar al roster' : '');
+
+  const renderRow = (entry, kind) => {
+    const teachers = [...entry.teachers].join(', ');
+    const lastDate = [...entry.dates].sort().pop();
+    const cmtTxt = entry.comentarios.length
+      ? `<div style="font-size:.78rem;color:var(--text2);margin-top:6px;font-style:italic">📝 ${esc(entry.comentarios.slice(0, 2).join(' · '))}${entry.comentarios.length > 2 ? ' …' : ''}</div>`
+      : '';
+    const tag = kind === 'sobra'
+      ? `<span class="badge badge-orange">SOBRA · ${entry.dates.size}×</span>`
+      : `<span class="badge" style="background:#FFE4D0;color:#A04000">FALTA · ${entry.dates.size}×</span>`;
+    const idLine = kind === 'sobra'
+      ? `SIMAT: <strong>${esc(entry.simat)}</strong>`
+      : `Sin SIMAT (pendiente de validar)`;
+    return `<div style="padding:14px 16px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="font-family:var(--fh);font-weight:800;font-size:.92rem">${esc(entry.apellidos)}, ${esc(entry.nombre)}</div>
+          <div style="font-size:.78rem;color:var(--text2);margin-top:2px">${idLine}</div>
+          <div style="font-size:.78rem;color:var(--text2);margin-top:2px">
+            ${esc(entry.className || '')}${entry.grade ? ' · Grado ' + esc(entry.grade) : ''}${entry.jornada ? ' · ' + esc(entry.jornada) : ''}
+          </div>
+          <div style="font-size:.74rem;color:var(--text2);margin-top:4px">
+            Reportado por: <strong>${esc(teachers)}</strong> · última vez ${fmtDate(lastDate)}
+          </div>
+          ${cmtTxt}
+        </div>
+        <div style="flex-shrink:0">${tag}</div>
+      </div>
+    </div>`;
+  };
+
+  let html = '';
+  if (sobran.length) {
+    html += `<div style="background:#FFF7EC;padding:10px 16px;font-size:.78rem;font-weight:700;color:#8C5A00;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)">Sobran · revisa si dar de baja en el roster</div>`;
+    html += sobran.map(e => renderRow(e, 'sobra')).join('');
+  }
+  if (faltan.length) {
+    html += `<div style="background:#FFE4D0;padding:10px 16px;font-size:.78rem;font-weight:700;color:#A04000;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border)">Faltan · agrega al roster con su SIMAT real</div>`;
+    html += faltan.map(e => renderRow(e, 'falta')).join('');
+  }
+  html += `<div style="padding:12px 16px;background:var(--bg);font-size:.74rem;color:var(--text2);font-style:italic">
+    Para resolver: abre la pestaña <strong>Clases</strong> en el Google Sheet del colegio. Borra la fila del estudiante que sobra; agrega una nueva fila con el SIMAT real para el que falta.
+  </div>`;
+
+  body.innerHTML = html;
+}
+
+// ═══════════════════════════════════
 // STUDENT LIST (all students + stats)
 // ═══════════════════════════════════
 function renderStudentList() {
@@ -854,8 +994,11 @@ function renderStudentList() {
   const search = (document.getElementById('student-search').value || '').trim().toLowerCase();
 
   // Aggregate per student using filtered records
+  // Reportados se excluyen del listado: aparecen en la sección "Por revisar"
+  // y no inflan el conteo de sesiones del estudiante.
   const stuMap = {};
   recs.forEach(r => {
+    if (r.estado === 'Reportado') return;
     const key = r.simat || (r.apellido1 + '_' + r.nombre1 + '_' + r.classId);
     if (!stuMap[key]) {
       stuMap[key] = {
@@ -918,8 +1061,12 @@ let CURRENT_FICHA_STUDENT = null;
 
 function openStudentCard(simat) {
   if (!DATA || !simat) return;
-  // Pull ALL records for this student (ignore filters except school scope)
-  const allRecs = DATA.records.filter(r => String(r.simat) === String(simat));
+  // Pull ALL records for this student (ignore filters except school scope).
+  // Excluimos las filas con estado='Reportado' — esas viven en "Por revisar"
+  // y no representan asistencia real.
+  const allRecs = DATA.records
+    .filter(r => String(r.simat) === String(simat))
+    .filter(r => r.estado !== 'Reportado');
   if (!allRecs.length) { alert('Este estudiante no tiene registros.'); return; }
 
   const r0 = allRecs[0];

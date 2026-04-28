@@ -121,13 +121,19 @@
     .stu-tile:active{background:var(--bg)}
     .stu-tile.aus .sname{color:var(--text2)}
     .stu-tile.tar .sname{color:#7A5C00}
+    .stu-tile.rep .sname{color:#999;text-decoration:line-through}
+    .stu-tile.rep .ssimat{color:#999}
     .snum{font-size:.72rem;color:var(--text2);width:22px;flex-shrink:0;font-family:var(--fh);font-weight:700}
     .sinfo{flex:1;min-width:0}
     .sname{font-family:var(--fh);font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .ssimat{font-size:.7rem;color:var(--text2);margin-top:1px}
+    .scmt{display:inline-block;margin-left:6px;font-size:.75rem;vertical-align:middle}
+    .sextra{display:inline-block;margin-left:6px;font-size:.62rem;color:white;background:var(--naranja);padding:1px 6px;border-radius:10px;font-weight:800;letter-spacing:.04em}
     .schip{font-family:var(--fh);font-weight:700;font-size:.7rem;padding:4px 10px;border-radius:20px;
       color:white;flex-shrink:0;text-transform:uppercase;letter-spacing:.03em;transition:background .15s}
-    .cp{background:var(--verde)}.ca{background:var(--rojo)}.cl{background:var(--amarillo);color:#5A4400}
+    .cp{background:var(--verde)}.ca{background:var(--rojo)}.cl{background:var(--amarillo);color:#5A4400}.cr{background:#888;color:white}
+    .ctr-chip-r{background:#888;color:white;border-radius:20px;padding:2px 8px;font-size:.75rem}
+    .add-extra-row{padding:14px 16px;border-top:1px dashed var(--border);background:var(--bg)}
 
     /* ── Attendance header ── */
     .att-hdr{background:var(--white);padding:12px 16px;border-bottom:1px solid var(--border);flex-shrink:0}
@@ -407,7 +413,7 @@
     <div class="att-hdr" id="att-hdr"></div>
     <div id="att-alert" class="alert-banner" style="display:none">⚠️ Ya existe un registro para esta sesión — será reemplazado al guardar.</div>
     <div class="content" style="padding-top:8px">
-      <p class="screen-hint" style="margin:8px 14px 8px">Toca el nombre de un estudiante para cambiar su estado: <strong style="color:var(--verde)">PRESENTE</strong> → <strong style="color:var(--rojo)">AUSENTE</strong> → <strong style="color:#7A5C00">TARDE</strong> → presente de nuevo. Al terminar, toca Guardar.</p>
+      <p class="screen-hint" style="margin:8px 14px 8px">Toca para cambiar estado: <strong style="color:var(--verde)">PRESENTE</strong> → <strong style="color:var(--rojo)">AUSENTE</strong> → <strong style="color:#7A5C00">TARDE</strong> → presente. <strong>Mantén presionado</strong> sobre un nombre para reportarlo como no listado o agregar un comentario.</p>
       <div class="card" id="stu-list"></div>
     </div>
     <div class="bottom-bar">
@@ -875,6 +881,64 @@
     </div>
   </div>
 
+  <!-- ══ STUDENT ACTION SHEET (long-press) ══════════ -->
+  <div class="modal-overlay" id="stu-menu" onclick="if(event.target===this)closeStuMenu()">
+    <div class="modal-sheet">
+      <div class="mtitle" id="stu-menu-title" style="font-size:1rem"></div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
+        <button class="btn bs" id="stu-menu-report" onclick="stuMenuReport()" style="text-align:left;justify-content:flex-start;padding:14px 16px"></button>
+        <button class="btn bs" id="stu-menu-comment" onclick="stuMenuComment()" style="text-align:left;justify-content:flex-start;padding:14px 16px"></button>
+        <button class="btn-link" onclick="closeStuMenu()" style="margin-top:4px">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ COMMENT MODAL ══════════════════════════════ -->
+  <div class="modal-overlay" id="cmt-modal" onclick="if(event.target===this)closeCommentModal()">
+    <div class="modal-sheet">
+      <div class="mtitle" id="cmt-title">Comentario</div>
+      <div class="mbody">
+        <textarea id="cmt-input" rows="4" maxlength="500" placeholder="Anota lo que necesites sobre este estudiante en esta sesión (ej. vino tarde por médico, papá llamó a justificar, etc.)"
+          style="width:100%;border:2px solid var(--border);border-radius:10px;padding:10px;font-size:16px;font-family:var(--fb);box-sizing:border-box;resize:vertical"></textarea>
+        <div style="font-size:.7rem;color:var(--text2);margin-top:6px">Este comentario queda solo en esta sesión. Vacío = sin comentario.</div>
+      </div>
+      <div class="macts">
+        <button class="btn bs" onclick="closeCommentModal()">Cancelar</button>
+        <button class="btn bg" onclick="saveComment()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ADD EXTRA STUDENT MODAL ════════════════════ -->
+  <div class="modal-overlay" id="extra-modal" onclick="if(event.target===this)closeAddExtraModal()">
+    <div class="modal-sheet">
+      <div class="mtitle">Agregar estudiante no listado</div>
+      <div class="mbody">
+        <p style="font-size:.82rem;color:var(--text2);margin:0 0 12px">Aparecerá en esta sesión con la marca <strong style="color:var(--naranja)">NO LISTADO</strong>. Lo podrás validar después desde el dashboard.</p>
+        <div class="fg">
+          <label>Apellido 1 <span style="color:var(--rojo)">*</span></label>
+          <input type="text" id="ex-ap1" autocomplete="off" autocapitalize="characters">
+        </div>
+        <div class="fg">
+          <label>Apellido 2</label>
+          <input type="text" id="ex-ap2" autocomplete="off" autocapitalize="characters">
+        </div>
+        <div class="fg">
+          <label>Nombre 1 <span style="color:var(--rojo)">*</span></label>
+          <input type="text" id="ex-n1" autocomplete="off" autocapitalize="characters">
+        </div>
+        <div class="fg">
+          <label>Nombre 2</label>
+          <input type="text" id="ex-n2" autocomplete="off" autocapitalize="characters">
+        </div>
+      </div>
+      <div class="macts">
+        <button class="btn bs" onclick="closeAddExtraModal()">Cancelar</button>
+        <button class="btn bg" onclick="saveExtraStudent()">Agregar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ TOASTS ═════════════════════════════════════ -->
   <div id="tc"></div>
 </div>
@@ -906,7 +970,15 @@ let S = { classes:[], events:[], slots:[], records:[], profile:{}, cloud:{}, syn
 let stack = ['home'];
 
 // Session
-let sess = { classId:null, eventId:null, slotLabel:null, date:null, absent:new Set(), late:new Set() };
+//   reported = student IDs marcados como "no listado" (estudiante en el roster
+//              que el profe reporta como que no debería estar)
+//   comments = { studentId: texto } — nota libre del profe por estudiante en
+//              esta sesión (no persiste entre sesiones)
+//   extras   = [{id, simat (= tempId TMP-...), apellido1, apellido2, nombre1, nombre2}]
+//              estudiantes agregados durante la sesión que no estaban en el roster
+let sess = { classId:null, eventId:null, slotLabel:null, date:null,
+             absent:new Set(), late:new Set(),
+             reported:new Set(), comments:{}, extras:[] };
 
 // Class editor
 let edClsId = null;
@@ -934,7 +1006,13 @@ function load() {
   if (!S.favorites) S.favorites = [];
   if (!S.dismissedAlerts) S.dismissedAlerts = [];
   // Backward-compat: ensure every record has lateIds (added in v3.1)
-  S.records.forEach(r => { if (!Array.isArray(r.lateIds)) r.lateIds = []; });
+  // y reportedIds/comments/extras (agregados con la feature "reportar/comentar/no listado")
+  S.records.forEach(r => {
+    if (!Array.isArray(r.lateIds))     r.lateIds = [];
+    if (!Array.isArray(r.reportedIds)) r.reportedIds = [];
+    if (!Array.isArray(r.extras))      r.extras = [];
+    if (!r.comments || typeof r.comments !== 'object') r.comments = {};
+  });
 }
 
 function save() {
@@ -1158,10 +1236,28 @@ async function syncRecordToCloud(rec) {
         apellido2: s.apellido2 || '',
         nombre1: s.nombre1 || '',
         nombre2: s.nombre2 || '',
-        estado: rec.absentIds.includes(s.id)
-          ? 'Ausente'
-          : ((rec.lateIds||[]).includes(s.id) ? 'Tarde' : 'Presente')
-      }))
+        estado: (rec.reportedIds||[]).includes(s.id)
+          ? 'Reportado'
+          : (rec.absentIds.includes(s.id)
+              ? 'Ausente'
+              : ((rec.lateIds||[]).includes(s.id) ? 'Tarde' : 'Presente')),
+        comentario: (rec.comments||{})[s.id] || ''
+      })).concat((rec.extras||[]).map(s => ({
+        // Estudiantes "no listados" agregados durante la sesión: viajan
+        // como filas extra de Asistencia con SIMAT = tempId TMP-... así el
+        // dashboard puede separarlos en "Estudiantes por revisar".
+        simat: s.simat || '',
+        apellido1: s.apellido1 || '',
+        apellido2: s.apellido2 || '',
+        nombre1: s.nombre1 || '',
+        nombre2: s.nombre2 || '',
+        estado: (rec.reportedIds||[]).includes(s.id)
+          ? 'Reportado'
+          : (rec.absentIds.includes(s.id)
+              ? 'Ausente'
+              : ((rec.lateIds||[]).includes(s.id) ? 'Tarde' : 'Presente')),
+        comentario: (rec.comments||{})[s.id] || ''
+      })))
     }
   };
 
@@ -1739,14 +1835,21 @@ function goToAttendance() {
 function initAttendance() {
   const cls=getCls(sess.classId);
   if(!cls)return;
-  sess.absent=new Set();
-  sess.late=new Set();
+  sess.absent   = new Set();
+  sess.late     = new Set();
+  sess.reported = new Set();
+  sess.comments = {};
+  sess.extras   = [];
 
   // Check existing record: classId + eventId + slotLabel + date (una sesión única por clase/evento/franja/día)
   const existing=S.records.find(r=>r.classId===sess.classId&&r.eventId===sess.eventId&&r.slotLabel===sess.slotLabel&&r.date===sess.date);
   if(existing){
     existing.absentIds.forEach(id=>sess.absent.add(id));
     (existing.lateIds||[]).forEach(id=>{ sess.absent.delete(id); sess.late.add(id); });
+    (existing.reportedIds||[]).forEach(id=>{ sess.absent.delete(id); sess.late.delete(id); sess.reported.add(id); });
+    sess.comments = Object.assign({}, existing.comments||{});
+    // Deep-clone para no mutar el record persistido al editar la sesión
+    sess.extras   = JSON.parse(JSON.stringify(existing.extras||[]));
     document.getElementById('att-alert').style.display='block';
   } else {
     document.getElementById('att-alert').style.display='none';
@@ -1760,46 +1863,77 @@ function initAttendance() {
     <div class="att-ctr">
       <span id="abs-cnt" class="ctr-chip">${sess.absent.size}</span> ausentes
       <span id="late-cnt" class="ctr-chip-l" style="margin-left:8px">${sess.late.size}</span> tarde
-      <span style="color:var(--text2);font-weight:600;margin-left:6px">de ${cls.students.length}</span>
+      <span id="rep-cnt" class="ctr-chip-r" style="margin-left:8px">${sess.reported.size}</span> reportados
+      <span style="color:var(--text2);font-weight:600;margin-left:6px">de <span id="tot-cnt">${cls.students.length + sess.extras.length}</span></span>
     </div>`;
 
   renderStuList(cls);
   go('att');
 }
 
-// Get current attendance state for a student id: 'p' (presente), 'a' (ausente), 'l' (tarde)
+// Get current attendance state for a student id:
+//   'p' presente · 'a' ausente · 'l' tarde · 'r' reportado (no listado)
+// Reportado tiene prioridad — el chip y el ciclo de tap quedan suspendidos
+// hasta que el profe quita la marca desde el menú de long-press.
 function attState(id){
-  if(sess.absent.has(id)) return 'a';
-  if(sess.late.has(id))   return 'l';
+  if(sess.reported.has(id)) return 'r';
+  if(sess.absent.has(id))   return 'a';
+  if(sess.late.has(id))     return 'l';
   return 'p';
 }
 
-const ATT_LABEL = { p:'Presente', a:'Ausente', l:'Tarde' };
-const ATT_CHIP  = { p:'cp',       a:'ca',      l:'cl'    };
+const ATT_LABEL = { p:'Presente', a:'Ausente', l:'Tarde', r:'Reportado' };
+const ATT_CHIP  = { p:'cp',       a:'ca',      l:'cl',    r:'cr'        };
 
 function renderStuList(cls) {
   const el=document.getElementById('stu-list');
-  const sorted=sortStu(cls.students);
-  if(!sorted.length){
-    el.innerHTML='<div class="empty"><div class="ei">👤</div><h3>Sin estudiantes</h3><p>Agrega estudiantes a esta clase</p></div>';
+  // Lista combinada: roster ordenado + extras (agregados en sesión) al final.
+  // Los extras quedan al final con badge naranja "NO LISTADO" para que el
+  // profe sepa que son agregados ad-hoc, no parte del roster oficial.
+  const sortedReg = sortStu(cls.students);
+  const sortedExtras = sortStu(sess.extras);
+  const all = sortedReg.concat(sortedExtras);
+
+  const addBtn = `<div class="add-extra-row">
+    <button class="btn bs btn-sm" onclick="openAddExtraModal()" style="width:100%">+ Agregar estudiante no listado</button>
+  </div>`;
+
+  if(!all.length){
+    el.innerHTML = '<div class="empty"><div class="ei">👤</div><h3>Sin estudiantes</h3><p>Agrega estudiantes a esta clase</p></div>' + addBtn;
     return;
   }
-  el.innerHTML=sorted.map((s,i)=>{
-    const st=attState(s.id);
-    const tileCls = st==='a' ? 'aus' : (st==='l' ? 'tar' : '');
-    return `<div class="stu-tile ${tileCls}" id="t-${s.id}" onclick="toggleAbs('${s.id}')">
+  el.innerHTML = all.map((s,i)=>{
+    const st = attState(s.id);
+    const tileCls = st==='a' ? 'aus' : (st==='l' ? 'tar' : (st==='r' ? 'rep' : ''));
+    const isExtra = sortedExtras.includes(s);
+    const hasCmt  = !!sess.comments[s.id];
+    const simatTxt = isExtra ? 'PENDIENTE — sin SIMAT' : ('SIMAT: ' + esc(s.simat||'—'));
+    return `<div class="stu-tile ${tileCls}" id="t-${s.id}"
+              ontouchstart="lpStart('${s.id}',event)"
+              ontouchend="lpEnd()"
+              ontouchmove="lpEnd()"
+              ontouchcancel="lpEnd()"
+              oncontextmenu="event.preventDefault();_lpFired=true;openStuMenu('${s.id}');return false"
+              onclick="toggleAbs('${s.id}')">
       <span class="snum">${i+1}</span>
       <div class="sinfo">
-        <div class="sname">${esc(dname(s))}</div>
-        <div class="ssimat">SIMAT: ${esc(s.simat||'—')}</div>
+        <div class="sname">${esc(dname(s))}${hasCmt?' <span class="scmt" title="Tiene comentario">📝</span>':''}${isExtra?' <span class="sextra">NO LISTADO</span>':''}</div>
+        <div class="ssimat">${simatTxt}</div>
       </div>
       <span class="schip ${ATT_CHIP[st]}" id="ch-${s.id}">${ATT_LABEL[st]}</span>
     </div>`;
-  }).join('');
+  }).join('') + addBtn;
 }
 
 // Cycle attendance state: presente → ausente → tarde → presente
+// Si el long-press disparó (lpFired), ignoramos el click que sigue.
+// Si el estudiante está reportado, el ciclo está bloqueado.
 function toggleAbs(id) {
+  if (_lpFired) { _lpFired = false; return; }
+  if (sess.reported.has(id)) {
+    toast('Estudiante reportado. Mantén presionado para opciones.','');
+    return;
+  }
   const cur = attState(id);
   const next = cur==='p' ? 'a' : (cur==='a' ? 'l' : 'p');
   sess.absent.delete(id); sess.late.delete(id);
@@ -1811,12 +1945,150 @@ function toggleAbs(id) {
   tile.classList.toggle('tar', next==='l');
 
   const ch=document.getElementById('ch-'+id);
-  ch.classList.remove('cp','ca','cl');
+  ch.classList.remove('cp','ca','cl','cr');
   ch.classList.add(ATT_CHIP[next]);
   ch.textContent = ATT_LABEL[next];
 
-  document.getElementById('abs-cnt').textContent  = sess.absent.size;
-  document.getElementById('late-cnt').textContent = sess.late.size;
+  updateAttCounters();
+}
+
+// Recalcula los contadores del header de asistencia (ausentes, tarde,
+// reportados, total). Llamar tras cualquier cambio en sess.{absent,late,
+// reported,extras}.
+function updateAttCounters() {
+  const cls = getCls(sess.classId);
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setTxt('abs-cnt',  sess.absent.size);
+  setTxt('late-cnt', sess.late.size);
+  setTxt('rep-cnt',  sess.reported.size);
+  setTxt('tot-cnt',  (cls ? cls.students.length : 0) + sess.extras.length);
+}
+
+/* ─── Long-press detection on student tile ───
+   500ms manteniendo el dedo (sin moverse) abre el menú. Si el dedo se
+   mueve (scroll vertical de la lista), se cancela. _lpFired evita que
+   el click sintético post-touch dispare el ciclo de presente/ausente. */
+let _lpTimer = null;
+let _lpFired = false;
+function lpStart(id, e) {
+  _lpFired = false;
+  if (_lpTimer) clearTimeout(_lpTimer);
+  _lpTimer = setTimeout(() => {
+    _lpFired = true;
+    if (navigator.vibrate) { try { navigator.vibrate(15); } catch(_){} }
+    openStuMenu(id);
+  }, 500);
+}
+function lpEnd() {
+  if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+}
+
+/* ─── Bottom-sheet menu por estudiante ─── */
+let _stuMenuId = null;
+function openStuMenu(id) {
+  const cls = getCls(sess.classId);
+  if (!cls) return;
+  const s = cls.students.find(x=>x.id===id) || sess.extras.find(x=>x.id===id);
+  if (!s) return;
+  _stuMenuId = id;
+  document.getElementById('stu-menu-title').textContent = dname(s);
+  const btnReport = document.getElementById('stu-menu-report');
+  btnReport.innerHTML = sess.reported.has(id)
+    ? '🚩 Quitar marca de "no listado"'
+    : '🚩 Marcar como no listado';
+  const btnComment = document.getElementById('stu-menu-comment');
+  btnComment.innerHTML = sess.comments[id]
+    ? '📝 Editar comentario'
+    : '📝 Agregar comentario';
+  document.getElementById('stu-menu').classList.add('open');
+}
+function closeStuMenu() {
+  document.getElementById('stu-menu').classList.remove('open');
+  _stuMenuId = null;
+}
+function stuMenuReport() {
+  if (!_stuMenuId) return;
+  const id = _stuMenuId;
+  if (sess.reported.has(id)) {
+    sess.reported.delete(id);
+  } else {
+    sess.reported.add(id);
+    sess.absent.delete(id);
+    sess.late.delete(id);
+  }
+  closeStuMenu();
+  const cls = getCls(sess.classId);
+  if (cls) renderStuList(cls);
+  updateAttCounters();
+}
+function stuMenuComment() {
+  if (!_stuMenuId) return;
+  const id = _stuMenuId;
+  closeStuMenu();
+  openCommentModal(id);
+}
+
+/* ─── Comentario por estudiante (texto libre, opcional) ─── */
+let _cmtId = null;
+function openCommentModal(id) {
+  _cmtId = id;
+  const cls = getCls(sess.classId);
+  const s = (cls && cls.students.find(x=>x.id===id)) || sess.extras.find(x=>x.id===id);
+  document.getElementById('cmt-title').textContent = 'Comentario — ' + (s ? dname(s) : '');
+  document.getElementById('cmt-input').value = sess.comments[id] || '';
+  document.getElementById('cmt-modal').classList.add('open');
+  setTimeout(() => { const el=document.getElementById('cmt-input'); if(el) el.focus(); }, 100);
+}
+function closeCommentModal() {
+  document.getElementById('cmt-modal').classList.remove('open');
+  _cmtId = null;
+}
+function saveComment() {
+  if (!_cmtId) return;
+  const txt = document.getElementById('cmt-input').value.trim();
+  if (txt) sess.comments[_cmtId] = txt;
+  else     delete sess.comments[_cmtId];
+  closeCommentModal();
+  const cls = getCls(sess.classId);
+  if (cls) renderStuList(cls);
+}
+function clearComment() {
+  if (!_cmtId) return;
+  delete sess.comments[_cmtId];
+  closeCommentModal();
+  const cls = getCls(sess.classId);
+  if (cls) renderStuList(cls);
+}
+
+/* ─── Agregar estudiante "no listado" en sesión ───
+   Genera tempId TMP-YYYYMMDD-XXXX que viaja como SIMAT al Sheet, así el
+   dashboard puede filtrarlos. El estudiante queda sólo en esta sesión. */
+function openAddExtraModal() {
+  ['ex-ap1','ex-ap2','ex-n1','ex-n2'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('extra-modal').classList.add('open');
+  setTimeout(() => { const el=document.getElementById('ex-ap1'); if(el) el.focus(); }, 100);
+}
+function closeAddExtraModal() {
+  document.getElementById('extra-modal').classList.remove('open');
+}
+function saveExtraStudent() {
+  const ap1 = document.getElementById('ex-ap1').value.trim().toUpperCase();
+  const ap2 = document.getElementById('ex-ap2').value.trim().toUpperCase();
+  const n1  = document.getElementById('ex-n1').value.trim().toUpperCase();
+  const n2  = document.getElementById('ex-n2').value.trim().toUpperCase();
+  if (!ap1) { toast('Apellido 1 obligatorio','err'); return; }
+  if (!n1)  { toast('Nombre 1 obligatorio','err'); return; }
+  const tempId = 'TMP-' + todayISO().replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
+  sess.extras.push({
+    id: 's_extra_' + Date.now() + '_' + Math.floor(Math.random()*99999),
+    simat: tempId,
+    apellido1: ap1, apellido2: ap2, nombre1: n1, nombre2: n2
+  });
+  closeAddExtraModal();
+  toast('Estudiante agregado a esta sesión','ok');
+  const cls = getCls(sess.classId);
+  if (cls) renderStuList(cls);
+  updateAttCounters();
 }
 
 function saveAttendance() {
@@ -1825,7 +2097,13 @@ function saveAttendance() {
   const rec={
     id: idx>=0?S.records[idx].id:genId('rec'),
     classId:sess.classId, eventId:sess.eventId, slotLabel:sess.slotLabel,
-    date:sess.date, absentIds:[...sess.absent], lateIds:[...sess.late], savedAt:new Date().toISOString(),
+    date:sess.date,
+    absentIds:   [...sess.absent],
+    lateIds:     [...sess.late],
+    reportedIds: [...sess.reported],
+    comments:    Object.assign({}, sess.comments),
+    extras:      JSON.parse(JSON.stringify(sess.extras)),
+    savedAt:new Date().toISOString(),
     facilitador: {
       nombre:        S.profile.nombre||'',
       idPersonal:    S.profile.idPersonal||'',
@@ -2446,18 +2724,33 @@ function renderHistory() {
       const cls=getCls(r.classId); if(!cls)return'';
       const evt=getEvt(r.eventId);
       const d=dot(cls);
-      const total=cls.students.length, absCnt=r.absentIds.length;
+      const reportedIds = r.reportedIds || [];
+      const extras = r.extras || [];
+      // total = roster + extras agregados; presCnt = total − ausentes − tarde
+      // − reportados (los reportados no cuentan como presentes ni como
+      // ausentes — son una categoría aparte que no ensucia la tasa).
+      const total = cls.students.length + extras.length;
+      const absCnt = r.absentIds.length;
       const lateIds = r.lateIds || [];
       const lateCnt = lateIds.length;
-      const presCnt = Math.max(total - absCnt - lateCnt, 0);
-      const absNames=r.absentIds
-        .map(id=>cls.students.find(s=>s.id===id)).filter(Boolean)
+      const repCnt  = reportedIds.length;
+      const presCnt = Math.max(total - absCnt - lateCnt - repCnt, 0);
+      const allRoster = cls.students.concat(extras);
+      const absNames = r.absentIds
+        .map(id => allRoster.find(s=>s.id===id)).filter(Boolean)
         .sort((a,b)=>(a.apellido1||'').localeCompare(b.apellido1||'','es'))
         .map(s=>`<span>${esc(dname(s))}</span>`).join('');
-      const lateNames=lateIds
-        .map(id=>cls.students.find(s=>s.id===id)).filter(Boolean)
+      const lateNames = lateIds
+        .map(id => allRoster.find(s=>s.id===id)).filter(Boolean)
         .sort((a,b)=>(a.apellido1||'').localeCompare(b.apellido1||'','es'))
         .map(s=>`<span style="background:#FFF3CD;color:#7A5C00;border:1px solid var(--amarillo)">${esc(dname(s))}</span>`).join('');
+      const repNames = reportedIds
+        .map(id => allRoster.find(s=>s.id===id)).filter(Boolean)
+        .sort((a,b)=>(a.apellido1||'').localeCompare(b.apellido1||'','es'))
+        .map(s=>`<span style="background:#EEE;color:#666;border:1px solid #BBB">🚩 ${esc(dname(s))}</span>`).join('');
+      const extraNames = extras
+        .slice().sort((a,b)=>(a.apellido1||'').localeCompare(b.apellido1||'','es'))
+        .map(s=>`<span style="background:#FFF1E0;color:#A04000;border:1px solid var(--naranja)">+ ${esc(dname(s))}</span>`).join('');
       return `<div class="hcard">
         <div class="hcard-hdr">
           <div class="cdot ${d}"></div>
@@ -2476,10 +2769,14 @@ function renderHistory() {
             <div class="hstat"><div class="hdot" style="background:var(--verde)"></div>${presCnt} presentes</div>
             <div class="hstat"><div class="hdot" style="background:var(--rojo)"></div>${absCnt} ausentes</div>
             ${lateCnt?`<div class="hstat"><div class="hdot" style="background:var(--amarillo)"></div>${lateCnt} tarde</div>`:''}
+            ${repCnt?`<div class="hstat"><div class="hdot" style="background:#888"></div>${repCnt} reportados</div>`:''}
+            ${extras.length?`<div class="hstat"><div class="hdot" style="background:var(--naranja)"></div>${extras.length} no listados</div>`:''}
           </div>
           ${absNames?`<div class="absl">${absNames}</div>`:''}
           ${lateNames?`<div class="absl">${lateNames}</div>`:''}
-          ${(!absNames && !lateNames)?'<div style="color:var(--verde);font-weight:700;font-size:.8rem">✓ Todos presentes</div>':''}
+          ${repNames?`<div class="absl">${repNames}</div>`:''}
+          ${extraNames?`<div class="absl">${extraNames}</div>`:''}
+          ${(!absNames && !lateNames && !repNames && !extraNames)?'<div style="color:var(--verde);font-weight:700;font-size:.8rem">✓ Todos presentes</div>':''}
         </div>
       </div>`;
     }).join('');
@@ -2501,22 +2798,37 @@ function confirmDelRec(id) {
    CSV EXPORT
 ═══════════════════════════════════ */
 function buildCSV(recs) {
-  const rows=[['Facilitador','IDFacilitador','Institucion','IDInstitucion','Rol','Fecha','Colegio','Clase','Grado','Aula','Evento','FranjaHoraria','SIMAT','Apellido1','Apellido2','Nombre1','Nombre2','Estado'].join(',')];
+  const rows=[['Facilitador','IDFacilitador','Institucion','IDInstitucion','Rol','Fecha','Colegio','Clase','Grado','Aula','Evento','FranjaHoraria','SIMAT','Apellido1','Apellido2','Nombre1','Nombre2','Estado','Comentario'].join(',')];
   recs.forEach(r=>{
     const cls=getCls(r.classId); if(!cls)return;
     const evt=getEvt(r.eventId);
+    const reportedIds = r.reportedIds || [];
+    const lateIds = r.lateIds || [];
+    const comments = r.comments || {};
+    const fac = r.facilitador || {};
+    const meta = [
+      fac.nombre||S.profile.nombre||'', fac.idPersonal||S.profile.idPersonal||'',
+      fac.institucion||S.profile.institucion||'', fac.idInstitucion||S.profile.idInstitucion||'',
+      fac.rol||S.profile.rol||'',
+      r.date, cls.school||'', cls.name, cls.grade||'', cls.aula||'', evt?evt.name:'', r.slotLabel||''
+    ];
+    const stateOf = id => reportedIds.includes(id)
+      ? 'Reportado'
+      : (r.absentIds.includes(id)
+          ? 'Ausente'
+          : (lateIds.includes(id) ? 'Tarde' : 'Presente'));
     sortStu(cls.students).forEach(s=>{
-      const status=r.absentIds.includes(s.id)
-        ? 'Ausente'
-        : ((r.lateIds||[]).includes(s.id) ? 'Tarde' : 'Presente');
-      const fac = r.facilitador || {};
-      rows.push([
-        fac.nombre||S.profile.nombre||'', fac.idPersonal||S.profile.idPersonal||'',
-        fac.institucion||S.profile.institucion||'', fac.idInstitucion||S.profile.idInstitucion||'',
-        fac.rol||S.profile.rol||'',
-        r.date, cls.school||'', cls.name, cls.grade||'', cls.aula||'', evt?evt.name:'', r.slotLabel||'',
-        s.simat||'', s.apellido1||'', s.apellido2||'', s.nombre1||'', s.nombre2||'', status
-      ].map(cv).join(','));
+      rows.push(meta.concat([
+        s.simat||'', s.apellido1||'', s.apellido2||'', s.nombre1||'', s.nombre2||'',
+        stateOf(s.id), comments[s.id]||''
+      ]).map(cv).join(','));
+    });
+    // Estudiantes "no listados" agregados durante la sesión
+    (r.extras || []).forEach(s=>{
+      rows.push(meta.concat([
+        s.simat||'', s.apellido1||'', s.apellido2||'', s.nombre1||'', s.nombre2||'',
+        stateOf(s.id), comments[s.id]||''
+      ]).map(cv).join(','));
     });
   });
   return rows.join('\n');

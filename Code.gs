@@ -32,11 +32,16 @@ var CLASES_HEADERS = [
 var CL = { id:0, name:1, school:2, sede:3, jornada:4, grade:5, aula:6,
            simat:7, ap1:8, ap2:9, n1:10, n2:11, pub:12, ver:13 };
 
+// 'estado' acepta: 'Presente' | 'Ausente' | 'Tarde' | 'Reportado'
+//   - Reportado = el profe lo marcó como "no debería estar en este grupo"
+// 'DOC' vacío o con prefijo TMP- = estudiante agregado en el aula sin estar
+//   en el roster. La columna 'comentario' es libre, opcional.
 var ASIST_HEADERS = [
   'recordId', 'classId', 'className', 'SEDE', 'JORNADA', 'GRADO_COD',
   'date', 'eventName', 'slotLabel',
   'DOC', 'APELLIDO1', 'APELLIDO2', 'NOMBRE1', 'NOMBRE2', 'estado',
-  'facilitador', 'facilitadorId', 'facilitadorRol', 'savedAt', 'syncedAt'
+  'facilitador', 'facilitadorId', 'facilitadorRol', 'savedAt', 'syncedAt',
+  'comentario'
 ];
 
 // Mapeo de columnas SIMAT usadas por el importador
@@ -622,7 +627,8 @@ function handleGetDashboard() {
         estado: row[14],
         facilitador: row[15] || '', facilitadorId: row[16] || '',
         facilitadorRol: row[17] || '',
-        savedAt: row[18] || '',     syncedAt: row[19] || ''
+        savedAt: row[18] || '',     syncedAt: row[19] || '',
+        comentario: row[20] || ''
       });
     });
   }
@@ -700,6 +706,11 @@ function handlePushClasses(body) {
 
 function handlePushAttendance(body, teacher) {
   var sheet = ensureTab('Asistencia', ASIST_HEADERS);
+  // Si la pestaña existe desde una versión vieja, puede tener menos columnas
+  // que ASIST_HEADERS. Extiéndela para que setValues no falle.
+  if (sheet.getMaxColumns() < ASIST_HEADERS.length) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), ASIST_HEADERS.length - sheet.getMaxColumns());
+  }
   var record = body.record;
   if (!record || !record.recordId) return { ok: false, error: 'Registro inválido' };
 
@@ -732,7 +743,8 @@ function handlePushAttendance(body, teacher) {
         s.simat || '', s.apellido1 || '', s.apellido2 || '',
         s.nombre1 || '', s.nombre2 || '', s.estado,
         record.facilitador || '', record.facilitadorId || '',
-        record.facilitadorRol || '', record.savedAt || '', now
+        record.facilitadorRol || '', record.savedAt || '', now,
+        s.comentario || ''
       ]);
     });
   }
