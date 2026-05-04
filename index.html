@@ -156,24 +156,12 @@
     .fl{display:block;font-family:var(--fh);font-weight:700;font-size:.75rem;color:var(--text2);
       text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}
     .fl .req{color:var(--rojo)}
-    .fi,.fsel,.fta{width:100%;border:2px solid var(--border);border-radius:var(--rs);padding:11px 13px;
+    .fi,.fsel{width:100%;border:2px solid var(--border);border-radius:var(--rs);padding:11px 13px;
       font-size:16px;font-family:var(--fb);background:var(--white);color:var(--text);
       transition:border-color .15s;outline:none}
-    .fi:focus,.fsel:focus,.fta:focus{border-color:var(--azul)}
-    .fta{resize:vertical;min-height:80px}
+    .fi:focus,.fsel:focus{border-color:var(--azul)}
     .frow{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .fhint{font-size:.72rem;color:var(--text2);margin-top:4px}
-
-    /* ── Student editor ── */
-    .ser{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:10px;min-height:56px}
-    .ser:last-child{border-bottom:none}
-    .sei{flex:1;min-width:0}
-    .sen{font-family:var(--fh);font-weight:700;font-size:.88rem}
-    .sem{font-size:.72rem;color:var(--text2);margin-top:1px}
-    .brem{background:none;border:none;color:#CCC;font-size:1rem;cursor:pointer;padding:6px;border-radius:6px;flex-shrink:0}
-    .brem:active{color:var(--rojo)}
-    .add-stu-card{background:var(--white);border-radius:var(--r);box-shadow:var(--shadow);padding:14px;margin-bottom:12px}
-    .add-stu-card h4{font-family:var(--fh);font-weight:800;font-size:.85rem;margin-bottom:10px;color:var(--azul)}
 
     /* ── History ── */
     .hgrp{margin-bottom:16px}
@@ -267,11 +255,6 @@
     .alert-cls{font-size:.72rem;color:var(--text2);margin-top:2px}
     .alert-badge{border-radius:20px;padding:2px 9px;font-size:.7rem;font-family:var(--fh);font-weight:700;color:white;white-space:nowrap;flex-shrink:0}
 
-    /* ── Import instructions ── */
-    .import-steps{background:#F0F7FF;border:1.5px solid #B8DCFA;border-radius:10px;padding:12px 14px;margin-top:10px;font-size:.8rem;line-height:1.6;color:var(--text)}
-    .import-steps ol{padding-left:18px;margin:6px 0 0}
-    .import-steps li{margin-bottom:4px}
-    .import-code{background:#1A1A2E;color:#7FDBFF;border-radius:6px;padding:6px 10px;font-family:monospace;font-size:.78rem;margin:6px 0;display:block;word-break:break-all}
   </style>
 </head>
 <body>
@@ -318,7 +301,6 @@
       <button class="btn bp" onclick="shareData()">📤 Compartir / exportar datos</button>
       <button class="btn bp" onclick="openHistory()">📊 Ver historial</button>
       <button class="btn bp" onclick="openStats()" style="background:var(--morado)">📈 Estadísticas</button>
-      <button class="btn bs" onclick="openManage()">⚙️ Gestionar Clases</button>
       <button class="btn bs" onclick="openSettings()">🎯 Eventos y Horarios</button>
       <div id="cloud-buttons"></div>
     </div>
@@ -332,9 +314,8 @@
       <div><div class="tb-title">Seleccionar Clase</div><div class="tb-sub">¿Con qué grupo tomas asistencia?</div></div>
     </div>
     <div class="content nb">
-      <p class="screen-hint">Elige el grupo con el que vas a tomar asistencia hoy. Si aún no tienes clases, crea una con el botón de abajo.</p>
+      <p class="screen-hint">Elige el grupo con el que vas a tomar asistencia hoy. Las clases las publica tu coordinador/a; si no ves la tuya, conéctate al colegio o pídele que la actualice.</p>
       <div class="card" id="att-cls-list"></div>
-      <button class="btn bp" style="margin-top:10px" onclick="openAddClass();stack.push('sel-cls')">➕ Agregar nueva clase</button>
     </div>
   </div>
 
@@ -419,156 +400,6 @@
     <div class="bottom-bar">
       <button class="btn bg" onclick="saveAttendance()">💾 Guardar Asistencia</button>
       <button class="btn-link" onclick="back()">Cancelar</button>
-    </div>
-  </div>
-
-  <!-- ══ MANAGE CLASSES ═════════════════════════════ -->
-  <div id="screen-manage" class="screen">
-    <div class="rb"></div>
-    <div class="topbar">
-      <button class="btn-icon" onclick="back()">←</button>
-      <div class="tb-title" style="flex:1">Mis Clases</div>
-      <button class="btn bp btn-sm" onclick="openAddClass()">+ Nueva</button>
-    </div>
-    <div class="content nb">
-      <p class="screen-hint">Aquí creas y administras tus grupos. Toca una clase para editarla o agregar estudiantes. Usa el botón 📤 para compartir la lista con otro docente.</p>
-      <div id="manage-cloud-bar"></div>
-      <button class="btn bs btn-sm" onclick="openImportSimat()" style="width:100%;margin-bottom:10px">📥 Importar lista desde SIMAT (.xlsx)</button>
-      <div class="card" id="manage-list"></div>
-    </div>
-  </div>
-
-  <!-- ══ IMPORT FROM SIMAT ══════════════════════════ -->
-  <div id="screen-import-simat" class="screen">
-    <div class="rb"></div>
-    <div class="topbar">
-      <button class="btn-icon" onclick="back()">←</button>
-      <div class="tb-title">Importar desde SIMAT</div>
-    </div>
-    <div class="content">
-      <p class="screen-hint">Sube el archivo Excel (.xlsx) que exporta SIMAT tal cual lo entrega el colegio o la SED. La app creará una clase por GRUPO, con los estudiantes MATRICULADOS.</p>
-
-      <div class="card cb" id="simat-upload-card">
-        <label class="btn bp" style="cursor:pointer;text-align:center;display:block;margin:0">
-          📁 Seleccionar archivo SIMAT (.xlsx)
-          <input type="file" id="simat-file" accept=".xlsx,.xls" style="display:none" onchange="handleSimatFile(event)">
-        </label>
-        <div class="fhint" style="margin-top:8px">
-          Se usarán las columnas: <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">INSTITUCION, SEDE, JORNADA, GRADO_COD, GRUPO, ESTADO, DOC, APELLIDO1, APELLIDO2, NOMBRE1, NOMBRE2</code>.
-          El archivo no se sube a ningún servidor — se procesa en tu dispositivo.
-        </div>
-      </div>
-
-      <div class="card cb" id="simat-loading" style="display:none;text-align:center;padding:24px">
-        <div style="font-size:2rem">⏳</div>
-        <div style="margin-top:8px;font-weight:700" id="simat-loading-msg">Procesando archivo…</div>
-      </div>
-
-      <div id="simat-result" style="display:none"></div>
-    </div>
-  </div>
-
-  <!-- ══ EDIT / ADD CLASS ═══════════════════════════ -->
-  <div id="screen-edit-cls" class="screen">
-    <div class="rb"></div>
-    <div class="topbar">
-      <button class="btn-icon" onclick="back()">←</button>
-      <div class="tb-title" id="edit-cls-title">Nueva Clase</div>
-    </div>
-    <div class="content">
-      <p class="screen-hint">Llena el nombre del grupo, grado y aula. Luego agrega los estudiantes uno a uno o importa la lista completa desde un archivo CSV del SIMAT.</p>
-      <div class="stitle">Información del grupo</div>
-      <div class="card cb">
-        <div class="fg">
-          <label class="fl">Nombre del grupo <span class="req">*</span></label>
-          <input class="fi" id="cls-name" type="text" placeholder="Ej: 7A · Matemáticas" autocomplete="off">
-        </div>
-        <div class="frow">
-          <div class="fg">
-            <label class="fl">Grado</label>
-            <select class="fsel" id="cls-grade" onchange="toggleGradeOtro()">
-              <option value="">—</option>
-              <option value="Preescolar">Preescolar</option>
-              <option value="1">Grado 1</option><option value="2">Grado 2</option>
-              <option value="3">Grado 3</option><option value="4">Grado 4</option>
-              <option value="5">Grado 5</option><option value="6">Grado 6</option>
-              <option value="7">Grado 7</option><option value="8">Grado 8</option>
-              <option value="9">Grado 9</option><option value="10">Grado 10</option>
-              <option value="11">Grado 11</option>
-              <option value="Otro">Otro</option>
-            </select>
-            <input class="fi" type="text" id="cls-grade-otro" placeholder="Ej: Multigrado 5-6" style="display:none;margin-top:6px" maxlength="40" autocomplete="off">
-          </div>
-          <div class="fg">
-            <label class="fl">Aula</label>
-            <select class="fsel" id="cls-aula" onchange="toggleAulaOtro()">
-              <option value="">—</option>
-              <option value="A">Aula A</option><option value="B">Aula B</option>
-              <option value="C">Aula C</option><option value="D">Aula D</option>
-              <option value="E">Aula E</option><option value="F">Aula F</option>
-              <option value="G">Aula G</option><option value="H">Aula H</option>
-              <option value="Multi-aula">Multi-aula</option>
-              <option value="Otro">Otro</option>
-            </select>
-            <input class="fi" type="text" id="cls-aula-otro" placeholder="Ej: A-101, Sala TIC" style="display:none;margin-top:6px" maxlength="40" autocomplete="off">
-          </div>
-        </div>
-        <div class="fhint" style="margin-top:4px">El colegio es el de tu perfil: <strong id="cls-school-hint" style="color:var(--text)">—</strong></div>
-      </div>
-
-      <div class="stitle">Estudiantes (<span id="stu-count">0</span>)</div>
-      <div class="card" id="stu-editor"></div>
-
-      <div class="add-stu-card">
-        <h4>➕ Agregar estudiante</h4>
-        <div class="fg">
-          <label class="fl">N.° SIMAT <span class="req">*</span></label>
-          <input class="fi" id="ns" type="text" inputmode="numeric" placeholder="Ej: 1001234567" autocomplete="off">
-        </div>
-        <div class="frow">
-          <div class="fg"><label class="fl">Apellido 1 <span class="req">*</span></label><input class="fi" id="na1" type="text" placeholder="Rodríguez" autocomplete="off"></div>
-          <div class="fg"><label class="fl">Apellido 2</label><input class="fi" id="na2" type="text" placeholder="Vargas" autocomplete="off"></div>
-        </div>
-        <div class="frow">
-          <div class="fg"><label class="fl">Nombre 1 <span class="req">*</span></label><input class="fi" id="nn1" type="text" placeholder="Ana" autocomplete="off"></div>
-          <div class="fg"><label class="fl">Nombre 2</label><input class="fi" id="nn2" type="text" placeholder="María" autocomplete="off"></div>
-        </div>
-        <button class="btn bp" onclick="addStu()" style="margin-top:4px">Agregar a la lista</button>
-      </div>
-
-      <div class="stitle">Importar lista (desde SIMAT)</div>
-      <div class="card cb">
-        <textarea class="fta" id="import-ta" placeholder="1001234567, RODRÍGUEZ, VARGAS, ANA, MARÍA&#10;1001234568, PÉREZ, GÓMEZ, CARLOS,&#10;..." style="margin-bottom:8px"></textarea>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn bs" style="flex:1" onclick="importStu()">📥 Pegar e importar</button>
-          <label class="btn bs" style="flex:1;cursor:pointer;margin:0">
-            📁 Importar archivo
-            <input type="file" id="import-file" accept=".csv,.txt" style="display:none" onchange="handleImportFile(event)">
-          </label>
-        </div>
-        <div class="import-steps">
-          <strong>¿Cómo importar la lista?</strong>
-          <ol>
-            <li>Abre el listado de estudiantes del SIMAT en Excel.</li>
-            <li>Crea o reorganiza las columnas en este orden exacto:<br>
-              <code class="import-code">SIMAT, Apellido1, Apellido2, Nombre1, Nombre2</code>
-              (si un campo está vacío déjalo en blanco, pero mantén las comas)
-            </li>
-            <li>Guarda el archivo como <strong>CSV (separado por comas)</strong>: <em>Archivo → Guardar como → CSV UTF-8</em>.</li>
-            <li>Toca <strong>📁 Importar archivo</strong> y selecciona el CSV guardado.<br>
-              O copia el contenido del archivo y pégalo en el cuadro de texto, luego toca <strong>📥 Pegar y importar</strong>.</li>
-          </ol>
-          <div style="margin-top:6px;font-size:.75rem;color:var(--text2)">
-            Ejemplo de línea válida:<br>
-            <code class="import-code">1001234567, RODRÍGUEZ, VARGAS, ANA, MARÍA</code>
-            Los estudiantes ya existentes (mismo SIMAT) no se duplicarán.
-          </div>
-        </div>
-      </div>
-
-      <div style="margin-top:16px">
-        <button class="btn bg" onclick="saveClass()">💾 Guardar Clase</button>
-      </div>
     </div>
   </div>
 
@@ -734,98 +565,6 @@
     </div>
   </div>
 
-  <!-- ══ PUBLISH TO SCHOOL (coordinator) ═════════════ -->
-  <div id="screen-publish" class="screen">
-    <div class="rb"></div>
-    <div class="topbar">
-      <button class="btn-icon" onclick="back()">←</button>
-      <div><div class="tb-title">☁️ Publicar al Colegio</div><div class="tb-sub">Comparte clases con los docentes</div></div>
-    </div>
-    <div class="content nb">
-      <!-- Before setup -->
-      <div id="pub-setup">
-        <div class="card cb">
-          <div class="stitle" style="margin-top:0">Configuración inicial</div>
-          <p style="font-size:.85rem;color:var(--text2);line-height:1.5;margin-bottom:12px">
-            Para conectar tu colegio necesitas una <strong>Google Sheet</strong> con el script de AulaPresente.
-            Si aún no la tienes, pide el enlace de la plantilla al administrador del sistema.
-          </p>
-          <div style="background:var(--bg);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:var(--text2);line-height:1.6">
-            <strong style="color:var(--text)">Pasos:</strong><br>
-            1. <a href="https://docs.google.com/spreadsheets/d/1NLOSGNiTIoyHhuRRVdxsVua8glq7qepjP56erEvIDGY/edit?usp=sharing" target="_blank" style="color:var(--azul);font-weight:700">Abre la plantilla de Google Sheet →</a><br>
-            2. File → "Hacer una copia" (queda en tu Drive)<br>
-            3. Llena la pestaña Config (nombre y código del colegio)<br>
-            4. Pega las listas de estudiantes en la pestaña Clases<br>
-            5. Extensions → Apps Script → Deploy → Web app → Anyone<br>
-            6. Copia la URL y pégala aquí abajo
-          </div>
-          <div class="fg" style="margin-bottom:10px">
-            <label class="fl">URL del Script (Web app)</label>
-            <input class="fi" type="url" id="pub-script-url" placeholder="https://script.google.com/macros/s/.../exec" autocomplete="off"
-              style="font-size:.82rem">
-            <div style="font-size:.72rem;color:var(--text2);margin-top:4px">La URL que obtuviste al desplegar el Web app</div>
-          </div>
-          <button class="btn bg" onclick="doCloudSetup()">🔗 Conectar</button>
-        </div>
-      </div>
-      <!-- After setup -->
-      <div id="pub-connected" style="display:none">
-        <!-- Code & share -->
-        <div class="card cb" style="border-left:4px solid var(--verde)">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <span style="font-size:1.5rem">☁️</span>
-            <div>
-              <div style="font-family:var(--fh);font-weight:800;font-size:1rem" id="pub-school-name"></div>
-              <div style="font-family:var(--fh);font-weight:900;font-size:1.3rem;color:var(--azul);letter-spacing:.05em" id="pub-code-display"></div>
-            </div>
-          </div>
-          <p style="font-size:.82rem;color:var(--text2);margin-bottom:10px">Comparte este código con tus docentes para que descarguen las listas de clase.</p>
-          <button class="btn bp btn-sm" onclick="shareSchoolCode()" style="margin-bottom:8px">📤 Compartir código por WhatsApp</button>
-          <div style="font-size:.72rem;color:var(--text2)" id="pub-last-sync"></div>
-        </div>
-
-        <!-- Open Sheet (primary action) -->
-        <div class="card cb" style="border-left:4px solid var(--azul)">
-          <div class="stitle" style="margin-top:0">📋 Gestionar listas de clase</div>
-          <p style="font-size:.85rem;color:var(--text2);line-height:1.5;margin-bottom:12px">
-            Abre la hoja de Google Sheets para <strong>agregar o editar las listas de estudiantes</strong> directamente. Pega los datos desde Excel o SIMAT.
-          </p>
-          <div style="background:var(--bg);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:.78rem;color:var(--text2);line-height:1.6">
-            <strong style="color:var(--text)">Formato de la pestaña "Clases":</strong><br>
-            Cada fila = un estudiante. Las columnas son:<br>
-            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">classId</code> ·
-            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">className</code> ·
-            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">school</code> ·
-            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">grade</code> ·
-            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">aula</code> ·
-            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">simat</code> ·
-            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">apellido1</code> ·
-            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">apellido2</code> ·
-            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">nombre1</code> ·
-            <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">nombre2</code><br>
-            Todos los estudiantes de la misma clase deben tener el mismo <code style="background:#E0E4EF;padding:1px 4px;border-radius:3px">classId</code>.
-          </div>
-          <button class="btn bg" onclick="openSheetLink()">📄 Abrir Google Sheet</button>
-        </div>
-
-        <!-- Publish from app (secondary) -->
-        <div class="card cb">
-          <div class="stitle" style="margin-top:0">También puedes publicar desde el app</div>
-          <p style="font-size:.82rem;color:var(--text2);margin-bottom:8px">Si creaste clases en el app, púshelas a la hoja con este botón.</p>
-          <div id="pub-class-list"></div>
-          <button class="btn bs btn-sm" onclick="doPublishClasses()" style="margin-top:8px">📤 Publicar clases del app</button>
-        </div>
-
-        <!-- Dashboard -->
-        <div class="card cb">
-          <div class="stitle" style="margin-top:0">📊 Dashboard</div>
-          <p style="font-size:.82rem;color:var(--text2);margin-bottom:8px">Abre el panel de control en tu computador para ver la asistencia de todos los docentes.</p>
-          <button class="btn bp btn-sm" onclick="openDashboardLink()">📊 Abrir Dashboard</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- ══ CONNECT TO SCHOOL (teacher) ═══════════════ -->
   <div id="screen-connect" class="screen">
     <div class="rb"></div>
@@ -980,10 +719,6 @@ let sess = { classId:null, eventId:null, slotLabel:null, date:null,
              absent:new Set(), late:new Set(),
              reported:new Set(), comments:{}, extras:[] };
 
-// Class editor
-let edClsId = null;
-let pendStu = [];
-
 const DOTS = ['dr','dn','dy','dg','da','dm'];
 
 /* ═══════════════════════════════════
@@ -1026,25 +761,21 @@ function save() {
 /* ═══════════════════════════════════
    CLOUD SYNC ENGINE
 ═══════════════════════════════════ */
-// Each school has its own Script URL (entered by coordinator during setup)
+// Each school has its own Script URL (the connection link given to the teacher)
 function getScriptUrl() { return (S.cloud && S.cloud.scriptUrl) || ''; }
 
-// "Connected" has a different requirement depending on role:
-//   - teacher:     URL + schoolCode + a per-teacher token (registerTeacher)
-//   - coordinator: URL + schoolCode + an adminToken (generated in Apps Script menu)
+// "Connected" requires URL + schoolCode + a per-teacher token (registerTeacher).
 function cloudOk() {
   if (!getScriptUrl() || !S.cloud || !S.cloud.schoolCode) return false;
-  if (S.cloud.role === 'coordinator') return !!S.cloud.adminToken;
   return !!S.cloud.token;
 }
 
-// Handle 401-style response uniformly: clear the relevant token so the
+// Handle 401-style response uniformly: clear the teacher token so the
 // user is forced back through the connect flow, preserving the rest of
 // their cloud config (URL, schoolCode) so they can reconnect quickly.
 function handleUnauthorized(result) {
   if (!result || !result.unauthorized) return false;
-  if (S.cloud.role === 'coordinator') S.cloud.adminToken = '';
-  else S.cloud.token = '';
+  S.cloud.token = '';
   save();
   toast(result.error || 'Acceso revocado — reconéctate', 'err');
   return true;
@@ -1088,43 +819,6 @@ async function cloudRegisterTeacher(nombre, idPersonal) {
       idPersonal: idPersonal
     })
   });
-  return result;
-}
-
-// ── Push classes (coordinator publishes) ──
-async function cloudPushClasses(classes) {
-  if (!cloudOk()) return;
-  const payload = classes.map(cls => ({
-    classId: cls.id,
-    name: cls.name,
-    school: cls.school || '',
-    grade: cls.grade || '',
-    aula: cls.aula || '',
-    version: cls.cloudVersion || 0,
-    students: cls.students.map(s => ({
-      simat: s.simat || '', apellido1: s.apellido1 || '', apellido2: s.apellido2 || '',
-      nombre1: s.nombre1 || '', nombre2: s.nombre2 || ''
-    }))
-  }));
-  const result = await gsFetch(getScriptUrl(), {
-    method: 'POST',
-    redirect: 'follow',
-    body: JSON.stringify({
-      action: 'pushClasses',
-      code: S.cloud.schoolCode,
-      adminToken: S.cloud.adminToken || '',
-      classes: payload
-    })
-  });
-  if (handleUnauthorized(result)) return result;
-  if (result.ok) {
-    classes.forEach(cls => {
-      cls.cloudVersion = (cls.cloudVersion || 0) + 1;
-      cls.source = 'cloud';
-    });
-    S.cloud.lastClassSync = new Date().toISOString();
-    save();
-  }
   return result;
 }
 
@@ -1174,7 +868,6 @@ async function cloudFetchClasses() {
       existing.cloudClassId = cc.classId;
       existing.cloudVersion = cc.version;
       existing.source = 'cloud';
-      existing.readOnly = true;
       updated++;
     } else {
       S.classes.push({
@@ -1188,7 +881,6 @@ async function cloudFetchClasses() {
         aula: cc.aula,
         students: students,
         source: 'cloud',
-        readOnly: true,
         cloudVersion: cc.version,
         createdAt: new Date().toISOString()
       });
@@ -1466,7 +1158,6 @@ function back() {
     document.getElementById('screen-'+prev).classList.add('active');
     if(prev==='home')         renderHome();
     if(prev==='history')      renderHistory();
-    if(prev==='manage')       renderManage();
     if(prev==='settings')     renderSettings();
     if(prev==='stats')        renderStats();
   }
@@ -1495,18 +1186,13 @@ function renderHome() {
   renderAlerts();
   updateSyncBadge();
 
-  // Cloud buttons on home
+  // Cloud buttons on home — teachers only
   const cbEl = document.getElementById('cloud-buttons');
   if (cbEl) {
-    const dashBtn = '<button class="btn bp btn-sm" onclick="openDashboardLink()" style="margin-top:6px">📊 Abrir Dashboard</button>';
-    if (S.cloud.role === 'coordinator') {
-      cbEl.innerHTML = '<button class="btn bn" onclick="openPublish()" style="margin-top:2px">☁️ Publicar al Colegio</button>' + dashBtn;
-    } else if (S.cloud.role === 'teacher' && S.cloud.schoolCode) {
+    if (S.cloud.role === 'teacher' && S.cloud.schoolCode) {
       cbEl.innerHTML = '<button class="btn bn" onclick="openConnect()" style="margin-top:2px">☁️ Conectado: ' + esc(S.cloud.schoolCode) + '</button>';
     } else {
-      cbEl.innerHTML = `
-        <button class="btn bn" onclick="openPublish()" style="margin-top:2px">☁️ Soy coordinador/a — Publicar clases</button>
-        <button class="btn bs" onclick="openConnect()" style="margin-top:2px">🔗 Soy docente — Conectar a un colegio</button>`;
+      cbEl.innerHTML = '<button class="btn bn" onclick="openConnect()" style="margin-top:2px">🔗 Conectar a un colegio</button>';
     }
   }
 }
@@ -1680,7 +1366,13 @@ function toggleFav(e, id) {
 
 function renderAttClsList() {
   const el=document.getElementById('att-cls-list');
-  if(!S.classes.length){el.innerHTML='<div class="empty"><div class="ei">📚</div><h3>Sin clases</h3></div>';return;}
+  if(!S.classes.length){
+    const connected = S.cloud && S.cloud.role === 'teacher' && S.cloud.schoolCode;
+    el.innerHTML = connected
+      ? '<div class="empty"><div class="ei">📚</div><h3>Sin clases todavía</h3><p>Tu coordinador/a aún no ha publicado tus clases. Pídele que las actualice.</p></div>'
+      : '<div class="empty"><div class="ei">📚</div><h3>Conéctate a tu colegio</h3><p>Tu coordinador/a publica las listas de clase. Pídele el enlace de conexión.</p><button class="btn bp" style="margin-top:12px" onclick="openConnect()">🔗 Conectar a un colegio</button></div>';
+    return;
+  }
   const t=todayISO();
   // Sort: favorites first, then alphabetical
   const sorted = [...S.classes].sort((a, b) => {
@@ -2123,509 +1815,6 @@ function saveAttendance() {
   stack=['home']; go('home'); renderHome();
 }
 
-/* ═══════════════════════════════════
-   MANAGE CLASSES
-═══════════════════════════════════ */
-function openManage() { renderManage(); go('manage'); }
-
-function renderManage() {
-  // Cloud bar for teachers
-  const cbar = document.getElementById('manage-cloud-bar');
-  if (cbar) {
-    if (S.cloud.role === 'teacher' && S.cloud.schoolCode) {
-      cbar.innerHTML = `<button class="btn bp btn-sm" onclick="doRefreshClasses();renderManage()" style="margin-bottom:10px;width:100%">🔄 Actualizar listas del colegio</button>`;
-    } else {
-      cbar.innerHTML = '';
-    }
-  }
-
-  const el=document.getElementById('manage-list');
-  if(!S.classes.length){
-    el.innerHTML='<div class="empty"><div class="ei">📚</div><h3>Sin clases aún</h3><p>Crea tu primera clase con "+ Nueva"</p></div>';
-    return;
-  }
-  el.innerHTML=S.classes.map(cls=>{
-    const d=dot(cls);
-    const rc=S.records.filter(r=>r.classId===cls.id).length;
-    const isCloud = cls.source === 'cloud';
-    const isReadOnly = cls.readOnly && S.cloud.role === 'teacher';
-    return `<div class="class-item" onclick="openEditClass('${cls.id}')">
-      <div class="cdot ${d}"></div>
-      <div class="ci">
-        <div class="cn">${isCloud ? '<span style="color:var(--azul);font-size:.8em">☁️</span> ' : ''}${esc(cls.name)}</div>
-        <div class="cm">${esc([cls.school, cls.sede, cls.jornada, cls.grade ? 'Grado ' + cls.grade : '', cls.aula ? 'Aula ' + cls.aula : ''].filter(Boolean).join(' · '))}</div>
-      </div>
-      <div class="cbadge">${cls.students.length} est.</div>
-      <div class="cbadge" style="background:#EEF5FF;color:var(--azul)">${rc} reg.</div>
-      ${isReadOnly ? '' : `<button class="cdel" onclick="event.stopPropagation();exportClass('${cls.id}')" title="Compartir clase">📤</button>`}
-      ${isReadOnly ? '' : `<button class="cdel" onclick="event.stopPropagation();confirmDelCls('${cls.id}')">🗑</button>`}
-    </div>`;
-  }).join('');
-}
-
-function toggleGradeOtro() {
-  const v=document.getElementById('cls-grade').value;
-  const el=document.getElementById('cls-grade-otro');
-  el.style.display=v==='Otro'?'block':'none';
-  if(v!=='Otro') el.value='';
-}
-function toggleAulaOtro() {
-  const v=document.getElementById('cls-aula').value;
-  const el=document.getElementById('cls-aula-otro');
-  el.style.display=v==='Otro'?'block':'none';
-  if(v!=='Otro') el.value='';
-}
-
-function _setGrade(val) {
-  const predefined=['','Preescolar','1','2','3','4','5','6','7','8','9','10','11'];
-  if(predefined.includes(val)){
-    document.getElementById('cls-grade').value=val;
-    document.getElementById('cls-grade-otro').style.display='none';
-  } else {
-    document.getElementById('cls-grade').value='Otro';
-    document.getElementById('cls-grade-otro').style.display='block';
-    document.getElementById('cls-grade-otro').value=val;
-  }
-}
-function _setAula(val) {
-  const predefined=['','A','B','C','D','E','F','G','H','Multi-aula'];
-  if(predefined.includes(val)){
-    document.getElementById('cls-aula').value=val;
-    document.getElementById('cls-aula-otro').style.display='none';
-  } else {
-    document.getElementById('cls-aula').value='Otro';
-    document.getElementById('cls-aula-otro').style.display='block';
-    document.getElementById('cls-aula-otro').value=val;
-  }
-}
-
-function openAddClass() {
-  edClsId=null; pendStu=[];
-  document.getElementById('edit-cls-title').textContent='Nueva Clase';
-  document.getElementById('cls-name').value='';
-  _setGrade(''); _setAula('');
-  document.getElementById('cls-school-hint').textContent=S.profile.institucion||'(sin colegio en perfil)';
-  clearStuForm();
-  document.getElementById('import-ta').value='';
-  renderPendStu();
-  go('edit-cls');
-}
-
-function openEditClass(id) {
-  const cls=getCls(id); if(!cls)return;
-  const isReadOnly = cls.readOnly && S.cloud.role === 'teacher';
-  edClsId=id; pendStu=cls.students.map(s=>({...s}));
-  document.getElementById('edit-cls-title').textContent= isReadOnly ? 'Ver Clase ☁️' : 'Editar Clase';
-  document.getElementById('cls-name').value=cls.name;
-  _setGrade(cls.grade||''); _setAula(cls.aula||'');
-  document.getElementById('cls-school-hint').textContent=S.profile.institucion||cls.school||'(sin colegio en perfil)';
-  clearStuForm();
-  document.getElementById('import-ta').value='';
-  // Disable editing for read-only cloud classes
-  const editableEls = document.querySelectorAll('#screen-edit-cls input, #screen-edit-cls select, #screen-edit-cls textarea');
-  editableEls.forEach(el => el.disabled = isReadOnly);
-  const editBtns = document.querySelectorAll('#screen-edit-cls .btn:not(.btn-icon)');
-  editBtns.forEach(el => {
-    if (isReadOnly && !el.textContent.includes('←')) el.style.display = 'none';
-    else el.style.display = '';
-  });
-  renderPendStu();
-  go('edit-cls');
-}
-
-function renderPendStu() {
-  document.getElementById('stu-count').textContent=pendStu.length;
-  const el=document.getElementById('stu-editor');
-  const sorted=sortStu(pendStu);
-  if(!sorted.length){el.innerHTML='<div class="empty" style="padding:18px"><p>Agrega estudiantes abajo ↓</p></div>';return;}
-  const cls = edClsId ? getCls(edClsId) : null;
-  const isReadOnly = cls && cls.readOnly && S.cloud.role === 'teacher';
-  el.innerHTML=sorted.map(s=>`<div class="ser">
-    <div class="sei"><div class="sen">${esc(dname(s))}</div><div class="sem">SIMAT: ${esc(s.simat||'—')}</div></div>
-    ${isReadOnly ? '' : `<button class="brem" onclick="remStu('${s.id}')">✕</button>`}
-  </div>`).join('');
-}
-
-function clearStuForm() {
-  ['ns','na1','na2','nn1','nn2'].forEach(id=>{document.getElementById(id).value='';});
-}
-
-function addStu() {
-  const simat=document.getElementById('ns').value.trim();
-  const ap1=document.getElementById('na1').value.trim().toUpperCase();
-  const ap2=document.getElementById('na2').value.trim().toUpperCase();
-  const n1=document.getElementById('nn1').value.trim().toUpperCase();
-  const n2=document.getElementById('nn2').value.trim().toUpperCase();
-  if(!simat){toast('El N.° SIMAT es obligatorio','err');return;}
-  if(!ap1)  {toast('El Apellido 1 es obligatorio','err');return;}
-  if(!n1)   {toast('El Nombre 1 es obligatorio','err');return;}
-  if(pendStu.some(s=>s.simat===simat)){toast('Ya existe un estudiante con ese SIMAT','err');return;}
-  pendStu.push({id:genId('s'),simat,apellido1:ap1,apellido2:ap2,nombre1:n1,nombre2:n2});
-  clearStuForm();
-  document.getElementById('ns').focus();
-  renderPendStu();
-  toast('Estudiante agregado','ok');
-}
-
-function remStu(id) { pendStu=pendStu.filter(s=>s.id!==id); renderPendStu(); }
-
-function handleImportFile(event) {
-  const file = event.target.files[0]; if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    document.getElementById('import-ta').value = e.target.result;
-    importStu();
-  };
-  reader.onerror = function() { toast('Error al leer el archivo','err'); };
-  reader.readAsText(file, 'UTF-8');
-  event.target.value = '';
-}
-
-function importStu() {
-  const text=document.getElementById('import-ta').value.trim();
-  if(!text){toast('Pega el contenido del archivo en el cuadro de texto','err');return;}
-  let added=0,skipped=0;
-  text.split('\n').map(l=>l.trim()).filter(Boolean).forEach(line=>{
-    const p=line.split(',').map(x=>x.trim());
-    const simat=p[0]||'',ap1=(p[1]||'').toUpperCase(),ap2=(p[2]||'').toUpperCase(),n1=(p[3]||'').toUpperCase(),n2=(p[4]||'').toUpperCase();
-    if(!simat||!ap1||!n1){skipped++;return;}
-    if(pendStu.some(s=>s.simat===simat)){skipped++;return;}
-    pendStu.push({id:genId('s'),simat,apellido1:ap1,apellido2:ap2,nombre1:n1,nombre2:n2});
-    added++;
-  });
-  document.getElementById('import-ta').value='';
-  renderPendStu();
-  if(added)   toast(`${added} estudiante(s) importado(s)`,'ok');
-  if(skipped) toast(`${skipped} línea(s) omitida(s)`,'err');
-}
-
-function saveClass() {
-  const name=document.getElementById('cls-name').value.trim();
-  const school=S.profile.institucion||'';
-  let grade=document.getElementById('cls-grade').value;
-  if(grade==='Otro') grade=document.getElementById('cls-grade-otro').value.trim();
-  let aula=document.getElementById('cls-aula').value;
-  if(aula==='Otro') aula=document.getElementById('cls-aula-otro').value.trim();
-  if(!name){toast('El nombre del grupo es obligatorio','err');return;}
-  if(edClsId){
-    const i=S.classes.findIndex(c=>c.id===edClsId);
-    if(i>=0) S.classes[i]={...S.classes[i],name,school,grade,aula,students:pendStu};
-    toast('Clase actualizada','ok');
-  } else {
-    S.classes.push({id:genId('cls'),name,school,grade,aula,students:pendStu,createdAt:new Date().toISOString()});
-    toast('Clase creada','ok');
-  }
-  save(); renderManage(); back();
-}
-
-function confirmDelCls(id) {
-  const cls=getCls(id); if(!cls)return;
-  const rc=S.records.filter(r=>r.classId===id).length;
-  showModal(`¿Eliminar "${cls.name}"?`,
-    `Esta clase tiene ${rc} registro(s). Se eliminarán todos.`,
-    ()=>{ S.classes=S.classes.filter(c=>c.id!==id); S.records=S.records.filter(r=>r.classId!==id); save(); renderManage(); toast('Clase eliminada','ok'); }
-  );
-}
-
-/* ═══════════════════════════════════
-   SIMAT IMPORT (.xlsx)
-   ═══════════════════════════════════ */
-
-let _sheetJSLoaded = false;
-let _sheetJSLoading = null;
-let _simatParsed = null;  // { school, rows: [...], grados: {code: {count, matric}}, sedes, jornadas }
-
-const SIMAT_REQ_COLS = ['ESTADO','INSTITUCION','SEDE','JORNADA','GRADO_COD','GRUPO',
-                        'DOC','APELLIDO1','APELLIDO2','NOMBRE1','NOMBRE2'];
-
-function loadSheetJS() {
-  if (_sheetJSLoaded) return Promise.resolve();
-  if (_sheetJSLoading) return _sheetJSLoading;
-  _sheetJSLoading = new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.mini.min.js';
-    s.onload  = () => { _sheetJSLoaded = true; resolve(); };
-    s.onerror = () => { _sheetJSLoading = null; reject(new Error('No se pudo cargar el lector de Excel. Verifica tu conexión a internet.')); };
-    document.head.appendChild(s);
-  });
-  return _sheetJSLoading;
-}
-
-function openImportSimat() {
-  _simatParsed = null;
-  document.getElementById('simat-result').style.display = 'none';
-  document.getElementById('simat-result').innerHTML = '';
-  document.getElementById('simat-loading').style.display = 'none';
-  document.getElementById('simat-upload-card').style.display = 'block';
-  const fi = document.getElementById('simat-file'); if (fi) fi.value = '';
-  go('import-simat');
-}
-
-function gradeLabel(g) {
-  const s = String(g == null ? '' : g).trim();
-  const map = { '-2':'Pre-jardín', '-1':'Jardín', '0':'Transición', '99':'Aceleración',
-                '26':'Ciclo 1 (adultos)', '27':'Ciclo 2 (adultos)', '28':'Ciclo 3 (adultos)',
-                '29':'Ciclo 4 (adultos)', '30':'Ciclo 5 (adultos)' };
-  if (map[s]) return map[s];
-  if (/^[0-9]+$/.test(s)) return 'Grado ' + s;
-  return s;
-}
-
-async function handleSimatFile(event) {
-  const file = event.target.files && event.target.files[0];
-  event.target.value = '';
-  if (!file) return;
-
-  const loading = document.getElementById('simat-loading');
-  const uploadCard = document.getElementById('simat-upload-card');
-  const resultEl = document.getElementById('simat-result');
-  const msgEl = document.getElementById('simat-loading-msg');
-
-  uploadCard.style.display = 'none';
-  resultEl.style.display = 'none';
-  loading.style.display = 'block';
-
-  try {
-    msgEl.textContent = 'Cargando lector de Excel…';
-    await loadSheetJS();
-
-    msgEl.textContent = 'Leyendo archivo…';
-    const buf = await file.arrayBuffer();
-
-    msgEl.textContent = 'Procesando hoja…';
-    const wb = XLSX.read(buf, { type: 'array', cellDates: false });
-    // Preferir la hoja "total_data" (SIMAT estándar), sino la primera
-    const sheetName = wb.SheetNames.includes('total_data') ? 'total_data' : wb.SheetNames[0];
-    if (!sheetName) throw new Error('El archivo no tiene hojas.');
-    const ws = wb.Sheets[sheetName];
-    const rows = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
-    if (!rows.length) throw new Error('La hoja "' + sheetName + '" está vacía.');
-
-    // Validar columnas requeridas
-    const cols = Object.keys(rows[0]);
-    const missing = SIMAT_REQ_COLS.filter(c => !cols.includes(c));
-    if (missing.length) {
-      throw new Error('Faltan columnas en el archivo: ' + missing.join(', ') +
-        '.\n\nVerifica que estás subiendo el archivo original de SIMAT (no una versión modificada).');
-    }
-
-    // Agregar por grado
-    const grados = {};
-    const sedes = new Set();
-    const jornadas = new Set();
-    let school = '';
-    rows.forEach(r => {
-      const g = String(r['GRADO_COD'] == null ? '' : r['GRADO_COD']).trim();
-      const est = String(r['ESTADO'] || '').trim().toUpperCase();
-      if (!g) return;
-      if (!grados[g]) grados[g] = { count: 0, matric: 0 };
-      grados[g].count++;
-      if (est === 'MATRICULADO') grados[g].matric++;
-      if (r['SEDE']) sedes.add(String(r['SEDE']).trim());
-      if (r['JORNADA']) jornadas.add(String(r['JORNADA']).trim());
-      if (!school && r['INSTITUCION']) school = String(r['INSTITUCION']).trim();
-    });
-
-    _simatParsed = { rows, school, grados, sedes:[...sedes], jornadas:[...jornadas] };
-
-    loading.style.display = 'none';
-    renderSimatFilter();
-  } catch (err) {
-    loading.style.display = 'none';
-    uploadCard.style.display = 'block';
-    toast(err.message || 'Error al leer el archivo', 'err');
-  }
-}
-
-function renderSimatFilter() {
-  if (!_simatParsed) return;
-  const { school, grados, sedes, jornadas, rows } = _simatParsed;
-  const gradoKeys = Object.keys(grados).sort((a,b)=>{
-    const na = parseInt(a,10), nb = parseInt(b,10);
-    if (!isNaN(na) && !isNaN(nb)) return na - nb;
-    return String(a).localeCompare(String(b));
-  });
-
-  const rowsHTML = gradoKeys.map(g => {
-    const info = grados[g];
-    const label = gradeLabel(g);
-    return `<label class="class-item" style="cursor:pointer;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px">
-      <input type="checkbox" class="simat-grado-chk" value="${esc(g)}" style="width:18px;height:18px;margin:0" onchange="renderSimatPreview()">
-      <div style="flex:1">
-        <div class="cn">${esc(label)} <span style="color:var(--text2);font-weight:500;font-size:.85em">(GRADO_COD ${esc(g)})</span></div>
-        <div class="cm">${info.matric} matriculado(s) · ${info.count} total(es)</div>
-      </div>
-    </label>`;
-  }).join('');
-
-  const resultEl = document.getElementById('simat-result');
-  resultEl.innerHTML = `
-    <div class="card cb">
-      <div class="stitle" style="margin-top:0">📄 Archivo cargado</div>
-      <div style="font-size:.9rem"><strong>${esc(school || '—')}</strong></div>
-      <div class="fhint">${rows.length} estudiante(s) en total · ${sedes.length} sede(s) · ${jornadas.length} jornada(s)</div>
-    </div>
-
-    <div class="stitle">Selecciona los grados a importar</div>
-    <div class="card" style="padding:6px">${rowsHTML}</div>
-
-    <div class="card cb" style="margin-top:10px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-        <input type="checkbox" id="simat-only-matric" checked onchange="renderSimatPreview()" style="width:18px;height:18px;margin:0">
-        <span>Solo estudiantes con <strong>ESTADO = MATRICULADO</strong></span>
-      </label>
-      <div class="fhint" style="margin-top:4px">Desactiva esto si también quieres incluir estudiantes RETIRADOS, TRASLADADOS, etc.</div>
-    </div>
-
-    <div id="simat-preview" style="margin-top:12px"></div>
-
-    <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="btn bs" style="flex:1" onclick="openImportSimat()">↺ Otro archivo</button>
-      <button class="btn bg" style="flex:2" id="simat-confirm-btn" onclick="confirmSimatImport()" disabled>Selecciona al menos un grado</button>
-    </div>
-  `;
-  resultEl.style.display = 'block';
-  renderSimatPreview();
-}
-
-function buildSimatClasses() {
-  if (!_simatParsed) return [];
-  const checked = [...document.querySelectorAll('.simat-grado-chk:checked')].map(el => el.value);
-  const onlyMatric = document.getElementById('simat-only-matric')?.checked !== false;
-  if (!checked.length) return [];
-
-  const groupMap = {};
-  _simatParsed.rows.forEach(r => {
-    const g = String(r['GRADO_COD'] == null ? '' : r['GRADO_COD']).trim();
-    if (checked.indexOf(g) < 0) return;
-    const est = String(r['ESTADO'] || '').trim().toUpperCase();
-    if (onlyMatric && est !== 'MATRICULADO') return;
-    const grupo = String(r['GRUPO'] || '').trim();
-    if (!grupo) return;
-    const doc = String(r['DOC'] || '').trim();
-    if (!doc) return;
-    const jornada = String(r['JORNADA'] || '').trim();
-
-    const key = grupo + '|' + jornada.toUpperCase();
-    if (!groupMap[key]) {
-      const jornadaLabel = jornada ? ' — ' + jornada.charAt(0).toUpperCase() + jornada.slice(1).toLowerCase() : '';
-      groupMap[key] = {
-        simatGroup: grupo,
-        name: 'Grupo ' + grupo + jornadaLabel,
-        school: String(r['INSTITUCION'] || '').trim(),
-        sede: String(r['SEDE'] || '').trim(),
-        jornada: jornada,
-        grade: gradeLabel(g).replace(/^Grado\s+/,''),  // store '9' not 'Grado 9'
-        gradeCode: g,
-        aula: grupo,
-        students: [],
-        _seen: new Set()
-      };
-    }
-    if (groupMap[key]._seen.has(doc)) return;
-    groupMap[key]._seen.add(doc);
-    groupMap[key].students.push({
-      id: genId('s'),
-      simat: doc,
-      apellido1: String(r['APELLIDO1'] || '').trim().toUpperCase(),
-      apellido2: String(r['APELLIDO2'] || '').trim().toUpperCase(),
-      nombre1:   String(r['NOMBRE1']   || '').trim().toUpperCase(),
-      nombre2:   String(r['NOMBRE2']   || '').trim().toUpperCase()
-    });
-  });
-
-  const out = Object.values(groupMap).map(c => {
-    delete c._seen;
-    c.students.sort((a,b)=>(a.apellido1||'').localeCompare(b.apellido1||'','es'));
-    return c;
-  });
-  out.sort((a,b)=>String(a.simatGroup).localeCompare(String(b.simatGroup),'es'));
-  return out;
-}
-
-function renderSimatPreview() {
-  const previewEl = document.getElementById('simat-preview');
-  const btn = document.getElementById('simat-confirm-btn');
-  if (!previewEl || !btn) return;
-
-  const classes = buildSimatClasses();
-  if (!classes.length) {
-    previewEl.innerHTML = '';
-    btn.disabled = true;
-    btn.textContent = 'Selecciona al menos un grado';
-    return;
-  }
-
-  const totalStu = classes.reduce((a,c)=>a + c.students.length, 0);
-  const simatKey = c => (c.simatGroup || '') + '|' + String(c.jornada || '').toUpperCase();
-  const existing = new Set(S.classes.filter(c => c.simatGroup).map(simatKey));
-  const willReplace = classes.filter(c => existing.has(simatKey(c))).length;
-
-  previewEl.innerHTML = `
-    <div class="stitle">Vista previa (${classes.length} clase(s) · ${totalStu} estudiante(s))</div>
-    <div class="card" style="padding:6px">
-      ${classes.map(c => `
-        <div class="class-item" style="border-radius:10px;padding:10px 12px">
-          <div style="flex:1">
-            <div class="cn">${esc(c.name)}${existing.has(simatKey(c)) ? ' <span style="background:#FFF3D6;color:#7A5C00;padding:1px 6px;border-radius:6px;font-size:.7em">reemplazará existente</span>' : ''}</div>
-            <div class="cm">${esc([c.sede, c.jornada, gradeLabel(c.gradeCode)].filter(Boolean).join(' · '))}</div>
-          </div>
-          <div class="cbadge">${c.students.length} est.</div>
-        </div>
-      `).join('')}
-    </div>
-    ${willReplace ? `<div class="fhint" style="margin-top:6px;color:#7A5C00">⚠️ ${willReplace} clase(s) ya existen con el mismo GRUPO y se reemplazarán (la lista nueva sustituye a la actual).</div>` : ''}
-  `;
-
-  btn.disabled = false;
-  btn.textContent = `✓ Crear ${classes.length} clase(s) con ${totalStu} estudiante(s)`;
-}
-
-function confirmSimatImport() {
-  const classes = buildSimatClasses();
-  if (!classes.length) return;
-  const totalStu = classes.reduce((a,c)=>a + c.students.length, 0);
-
-  showModal(
-    `¿Crear ${classes.length} clase(s)?`,
-    `Se agregarán ${totalStu} estudiantes desde SIMAT. Las clases con el mismo GRUPO y JORNADA se reemplazarán (no se duplican).`,
-    () => {
-      let created = 0, replaced = 0;
-      const sameKey = (a, b) =>
-        a.simatGroup === b.simatGroup &&
-        String(a.jornada || '').toUpperCase() === String(b.jornada || '').toUpperCase();
-      classes.forEach(nc => {
-        const existingIdx = S.classes.findIndex(c => c.simatGroup && sameKey(c, nc));
-        const base = {
-          simatGroup: nc.simatGroup,
-          name: nc.name,
-          school: nc.school,
-          sede: nc.sede,
-          jornada: nc.jornada,
-          grade: nc.grade,
-          gradeCode: nc.gradeCode,
-          aula: nc.aula,
-          students: nc.students,
-          source: 'simat'
-        };
-        if (existingIdx >= 0) {
-          S.classes[existingIdx] = { ...S.classes[existingIdx], ...base };
-          replaced++;
-        } else {
-          S.classes.push({ id: genId('cls'), createdAt: new Date().toISOString(), ...base });
-          created++;
-        }
-      });
-      save();
-      const parts = [];
-      if (created)  parts.push(`${created} creada(s)`);
-      if (replaced) parts.push(`${replaced} actualizada(s)`);
-      toast(parts.join(' · ') || 'Listo', 'ok');
-      // volver a la pantalla anterior (manage) — back() ya hace pop + render
-      back();
-    }
-  );
-}
 
 /* ═══════════════════════════════════
    SETTINGS (Events + Slots)
@@ -2877,221 +2066,6 @@ function exportRec(id){
   const cls=getCls(rec.classId);
   dl(buildCSV([rec]),'asistencia_'+(cls?cls.name.replace(/[^a-zA-Z0-9]/g,'_'):'clase')+'_'+rec.date+'.csv');
   toast('Exportado','ok');
-}
-
-/* ═══════════════════════════════════
-   EXPORT / IMPORT CLASS
-═══════════════════════════════════ */
-async function exportClass(id) {
-  const cls = getCls(id); if (!cls) return;
-  const payload = {
-    aulaPresente: 'clase_v1',
-    exportedAt: new Date().toISOString(),
-    exportedBy: S.profile.nombre || '',
-    class: {
-      id: cls.id,
-      name: cls.name,
-      school: cls.school || '',
-      grade: cls.grade || '',
-      aula: cls.aula || '',
-      students: cls.students.map(s => ({
-        simat: s.simat || '', apellido1: s.apellido1 || '', apellido2: s.apellido2 || '',
-        nombre1: s.nombre1 || '', nombre2: s.nombre2 || ''
-      }))
-    }
-  };
-  const json = JSON.stringify(payload, null, 2);
-  const filename = 'clase_' + cls.name.replace(/[^a-zA-Z0-9]/g, '_') + '.json';
-  const blob = new Blob([json], { type: 'application/json' });
-  const file = new File([blob], filename, { type: 'application/json' });
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        title: 'Clase: ' + cls.name + ' — AulaPresente',
-        text: cls.students.length + ' estudiantes · ' + (cls.school || ''),
-        files: [file]
-      });
-      toast('Clase compartida', 'ok'); return;
-    } catch(e) { if (e.name === 'AbortError') return; }
-  }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast('Archivo de clase descargado', 'ok');
-}
-
-function triggerImportClass() {
-  document.getElementById('import-class-file').click();
-}
-
-function handleImportClass(event) {
-  const file = event.target.files[0]; if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    try {
-      const payload = JSON.parse(e.target.result);
-      if (!payload.aulaPresente || !payload.class) { toast('Archivo inválido', 'err'); return; }
-      const data = payload.class;
-      if (!data.name || !Array.isArray(data.students)) { toast('Archivo inválido', 'err'); return; }
-
-      // Match existing class by original id, or by name+school
-      const existingIdx = S.classes.findIndex(c =>
-        c.id === data.id || (c.name === data.name && (c.school || '') === (data.school || ''))
-      );
-      if (existingIdx >= 0) {
-        // Update: merge students (add new SIMATs, skip duplicates)
-        const existing = S.classes[existingIdx];
-        let added = 0;
-        data.students.forEach(s => {
-          if (!s.simat || existing.students.some(e => e.simat === s.simat)) return;
-          existing.students.push({ id: genId('stu'), ...s });
-          added++;
-        });
-        existing.name = data.name;
-        if (data.school) existing.school = data.school;
-        if (data.grade)  existing.grade  = data.grade;
-        if (data.aula)   existing.aula   = data.aula;
-        save(); renderManage();
-        toast('Clase actualizada · ' + added + ' estudiante(s) nuevo(s)', 'ok');
-      } else {
-        // New class
-        S.classes.push({
-          id: data.id || genId('cls'),
-          name: data.name, school: data.school || '', grade: data.grade || '', aula: data.aula || '',
-          students: data.students.map(s => ({ id: genId('stu'), ...s }))
-        });
-        save(); renderManage();
-        toast('Clase importada · ' + data.students.length + ' estudiantes', 'ok');
-      }
-    } catch(err) { toast('Error al leer el archivo', 'err'); }
-    event.target.value = '';
-  };
-  reader.readAsText(file);
-}
-
-/* ═══════════════════════════════════
-   CLOUD: COORDINATOR FLOWS
-═══════════════════════════════════ */
-function openPublish() {
-  const hasSetup = S.cloud.role === 'coordinator' && S.cloud.scriptUrl;
-  document.getElementById('pub-setup').style.display = hasSetup ? 'none' : 'block';
-  document.getElementById('pub-connected').style.display = hasSetup ? 'block' : 'none';
-
-  if (!hasSetup) {
-    document.getElementById('pub-script-url').value = S.cloud.scriptUrl || '';
-  } else {
-    renderPublishConnected();
-  }
-  go('publish');
-}
-
-function renderPublishConnected() {
-  document.getElementById('pub-school-name').textContent = S.cloud.schoolName || S.profile.institucion || '';
-  document.getElementById('pub-code-display').textContent = S.cloud.schoolCode;
-  document.getElementById('pub-last-sync').textContent = S.cloud.lastClassSync
-    ? 'Última publicación: ' + new Date(S.cloud.lastClassSync).toLocaleString('es-CO')
-    : '';
-  // Class list
-  const el = document.getElementById('pub-class-list');
-  el.innerHTML = S.classes.map(cls =>
-    `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
-      <span style="font-size:1.1rem">📚</span>
-      <div style="flex:1">
-        <div style="font-family:var(--fh);font-weight:700;font-size:.88rem">${esc(cls.name)}</div>
-        <div style="font-size:.72rem;color:var(--text2)">${cls.students.length} estudiantes${cls.grade ? ' · Grado ' + cls.grade : ''}</div>
-      </div>
-      <span style="font-size:.72rem;color:var(--verde);font-weight:700">${cls.source === 'cloud' ? '☁️' : ''}</span>
-    </div>`
-  ).join('');
-}
-
-async function doCloudSetup() {
-  const url = document.getElementById('pub-script-url').value.trim();
-  if (!url || !url.startsWith('https://script.google.com/')) {
-    toast('Pega la URL del Web app (empieza con https://script.google.com/...)', 'err'); return;
-  }
-
-  // Store URL temporarily to use gsFetch
-  S.cloud.scriptUrl = url;
-
-  toast('Verificando conexión...', '');
-  try {
-    const result = await gsFetch(url + '?action=ping');
-    if (!result.ok) {
-      S.cloud.scriptUrl = '';
-      toast(result.error || 'No se pudo conectar. Verifica que el script esté desplegado.', 'err');
-      return;
-    }
-
-    S.cloud.schoolCode = result.schoolCode || '';
-    S.cloud.schoolName = result.schoolName || '';
-    S.cloud.role = 'coordinator';
-    save();
-
-    toast('Conectado a ' + (result.schoolName || result.schoolCode) + ' ☁️', 'ok');
-    document.getElementById('pub-setup').style.display = 'none';
-    document.getElementById('pub-connected').style.display = 'block';
-    renderPublishConnected();
-  } catch (err) {
-    S.cloud.scriptUrl = '';
-    toast('Error de conexión: ' + err.message, 'err');
-  }
-}
-
-async function doPublishClasses() {
-  if (!cloudOk()) return;
-  if (!S.classes.length) { toast('No hay clases para publicar', 'err'); return; }
-
-  toast('Publicando clases...', '');
-  try {
-    const result = await cloudPushClasses(S.classes);
-    if (result && result.ok) {
-      toast(result.classesWritten + ' clase(s) publicada(s) ☁️', 'ok');
-      renderPublishConnected();
-    } else {
-      toast(result?.error || 'Error al publicar', 'err');
-    }
-  } catch (err) {
-    toast('Error: ' + err.message, 'err');
-  }
-}
-
-async function shareSchoolCode() {
-  const url = S.cloud.scriptUrl || '';
-  const name = S.cloud.schoolName || S.cloud.schoolCode || '';
-  const text = '📋 *AulaPresente — ' + name + '*\n\nConéctate para descargar las listas de clase:\n\n1. Abre AulaPresente:\nhttps://oscarmdiazb.github.io/asistencia-escolar/\n\n2. Toca "Soy docente — Conectar a un colegio"\n\n3. Pega este enlace de conexión:\n' + url;
-
-  if (navigator.share) {
-    try {
-      await navigator.share({ title: 'Código AulaPresente: ' + code, text: text });
-      return;
-    } catch (e) { if (e.name === 'AbortError') return; }
-  }
-  // Fallback: copy to clipboard
-  try {
-    await navigator.clipboard.writeText(text);
-    toast('Código copiado al portapapeles', 'ok');
-  } catch (e) {
-    toast('Código: ' + code, 'ok');
-  }
-}
-
-function openSheetLink() {
-  // The Sheet is in the coordinator's Drive — open Apps Script URL which links to the Sheet
-  const scriptUrl = getScriptUrl();
-  if (scriptUrl) {
-    // Extract the script ID to build a link to the Sheet
-    toast('Busca la hoja "AulaPresente" en tu Google Drive', 'ok');
-    window.open('https://drive.google.com', '_blank');
-  } else {
-    toast('Configura la conexión primero', 'err');
-  }
-}
-
-function openDashboardLink() {
-  const scriptUrl = getScriptUrl();
-  const url = 'https://oscarmdiazb.github.io/asistencia-escolar/dashboard.html#' + encodeURIComponent(scriptUrl);
-  window.open(url, '_blank');
 }
 
 /* ═══════════════════════════════════
