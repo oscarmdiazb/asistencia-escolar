@@ -397,7 +397,7 @@
     <div class="att-hdr" id="att-hdr"></div>
     <div id="att-alert" class="alert-banner" style="display:none">⚠️ Ya existe un registro para esta sesión — será reemplazado al guardar.</div>
     <div class="content" style="padding-top:8px">
-      <p class="screen-hint" style="margin:8px 14px 8px">Toca para cambiar estado: <strong style="color:var(--verde)">PRESENTE</strong> → <strong style="color:var(--rojo)">AUSENTE</strong> → <strong style="color:#7A5C00">TARDE</strong> → presente. <strong>Mantén presionado</strong> sobre un nombre para marcarlo como retirado o agregar un comentario.</p>
+      <p class="screen-hint" style="margin:8px 14px 8px">Toca para cambiar estado: <strong style="color:var(--verde)">PRESENTE</strong> → <strong style="color:var(--rojo)">AUSENTE</strong> → <strong style="color:#7A5C00">LLEGÓ TARDE</strong> → presente. <strong>Mantén presionado</strong> sobre un nombre para marcarlo como retirado o agregar un comentario.</p>
       <div class="card" id="stu-list"></div>
     </div>
     <div class="bottom-bar">
@@ -939,7 +939,7 @@ async function syncRecordToCloud(rec) {
           ? 'Retirado'
           : (rec.absentIds.includes(s.id)
               ? 'Ausente'
-              : ((rec.lateIds||[]).includes(s.id) ? 'Tarde' : 'Presente')),
+              : ((rec.lateIds||[]).includes(s.id) ? 'Llegó Tarde' : 'Presente')),
         comentario: (rec.comments||{})[s.id] || ''
       })).concat((rec.extras||[]).map(s => ({
         // Estudiantes "no listados" agregados durante la sesión: viajan
@@ -954,7 +954,7 @@ async function syncRecordToCloud(rec) {
           ? 'Retirado'
           : (rec.absentIds.includes(s.id)
               ? 'Ausente'
-              : ((rec.lateIds||[]).includes(s.id) ? 'Tarde' : 'Presente')),
+              : ((rec.lateIds||[]).includes(s.id) ? 'Llegó Tarde' : 'Presente')),
         comentario: (rec.comments||{})[s.id] || ''
       })))
     }
@@ -1503,7 +1503,7 @@ function initAttendance() {
     <div class="att-evt">${esc(evt?evt.name:'')} · ${esc(sess.slotLabel||'')}</div>
     <div class="att-ctr">
       <span id="abs-cnt" class="ctr-chip">${sess.absent.size}</span> ausentes
-      <span id="late-cnt" class="ctr-chip-l" style="margin-left:8px">${sess.late.size}</span> tarde
+      <span id="late-cnt" class="ctr-chip-l" style="margin-left:8px">${sess.late.size}</span> llegó tarde
       <span id="rep-cnt" class="ctr-chip-r" style="margin-left:8px">${sess.reported.size}</span> retirados
       <span style="color:var(--text2);font-weight:600;margin-left:6px">de <span id="tot-cnt">${cls.students.length + sess.extras.length}</span></span>
     </div>`;
@@ -1523,7 +1523,7 @@ function attState(id){
   return 'p';
 }
 
-const ATT_LABEL = { p:'Presente', a:'Ausente', l:'Tarde', r:'Retirado' };
+const ATT_LABEL = { p:'Presente', a:'Ausente', l:'Llegó Tarde', r:'Retirado' };
 const ATT_CHIP  = { p:'cp',       a:'ca',      l:'cl',    r:'cr'        };
 
 function renderStuList(cls) {
@@ -1910,7 +1910,7 @@ function renderHistory() {
           <div class="hstats">
             <div class="hstat"><div class="hdot" style="background:var(--verde)"></div>${presCnt} presentes</div>
             <div class="hstat"><div class="hdot" style="background:var(--rojo)"></div>${absCnt} ausentes</div>
-            ${lateCnt?`<div class="hstat"><div class="hdot" style="background:var(--amarillo)"></div>${lateCnt} tarde</div>`:''}
+            ${lateCnt?`<div class="hstat"><div class="hdot" style="background:var(--amarillo)"></div>${lateCnt} llegó tarde</div>`:''}
             ${repCnt?`<div class="hstat"><div class="hdot" style="background:#888"></div>${repCnt} retirados</div>`:''}
             ${extras.length?`<div class="hstat"><div class="hdot" style="background:var(--naranja)"></div>${extras.length} no listados</div>`:''}
           </div>
@@ -1958,7 +1958,7 @@ function buildCSV(recs) {
       ? 'Retirado'
       : (r.absentIds.includes(id)
           ? 'Ausente'
-          : (lateIds.includes(id) ? 'Tarde' : 'Presente'));
+          : (lateIds.includes(id) ? 'Llegó Tarde' : 'Presente'));
     sortStu(cls.students).forEach(s=>{
       rows.push(meta.concat([
         s.simat||'', s.apellido1||'', s.apellido2||'', s.nombre1||'', s.nombre2||'',

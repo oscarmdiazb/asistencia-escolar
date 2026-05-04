@@ -86,10 +86,11 @@
     /* Charts (CSS bars) */
     .bar-chart{display:flex;flex-direction:column;gap:8px}
     .bar-row{display:flex;align-items:center;gap:10px}
-    .bar-label{font-family:var(--fh);font-weight:700;font-size:.8rem;width:140px;flex-shrink:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .bar-label{font-family:var(--fh);font-weight:700;font-size:.78rem;width:180px;flex-shrink:0;text-align:right;line-height:1.25;
+      display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
     .bar-track{flex:1;background:var(--bg);border-radius:4px;height:20px;position:relative}
     .bar-fill{height:100%;border-radius:4px;transition:width .3s}
-    .bar-val{font-family:var(--fh);font-weight:800;font-size:.75rem;width:50px;flex-shrink:0}
+    .bar-val{font-family:var(--fh);font-weight:800;font-size:.75rem;width:90px;flex-shrink:0;text-align:right}
 
     /* Two-column layout */
     .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
@@ -146,7 +147,7 @@
     .ficha-info{display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;font-size:.88rem}
     .ficha-info .lbl{color:var(--text2);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em}
     .ficha-info .val{font-family:var(--fh);font-weight:700;font-size:.95rem;color:var(--text);margin-bottom:6px}
-    .ficha-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .ficha-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
     .ficha-kpi{background:var(--bg);border-radius:10px;padding:14px 10px;text-align:center}
     .ficha-kpi .v{font-family:var(--fh);font-weight:900;font-size:1.6rem}
     .ficha-kpi .l{font-size:.66rem;text-transform:uppercase;color:var(--text2);letter-spacing:.04em;margin-top:2px}
@@ -160,6 +161,7 @@
     .ficha-hist td{padding:6px 8px;border-bottom:1px solid var(--border)}
     .ficha-hist td.presente{color:var(--verde);font-weight:700}
     .ficha-hist td.ausente{color:var(--rojo);font-weight:700}
+    .ficha-hist td.tarde{color:#7A5C00;font-weight:700}
     .ficha-foot{padding:12px 28px;background:var(--bg);font-size:.7rem;color:var(--text2);display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)}
 
     /* Tables: horizontal scroll on narrow screens */
@@ -206,8 +208,8 @@
       th,td{padding:8px 10px;font-size:.78rem}
 
       /* Bar chart labels shrink */
-      .bar-label{width:90px;font-size:.72rem}
-      .bar-val{width:78px;font-size:.68rem}
+      .bar-label{width:120px;font-size:.7rem}
+      .bar-val{width:80px;font-size:.68rem}
 
       /* Time series */
       .ts-wrap{height:180px}
@@ -239,6 +241,42 @@
       .filters select,.filters input{flex:1 1 100%}
       .brand-logo{font-size:1.2rem}
       .brand-sub{font-size:.62rem}
+    }
+
+    /* ── Print layout (Ctrl+P / Save as PDF) ──
+       Goal: que el rector reciba un PDF limpio con colores y sin
+       controles interactivos. Forzamos colores con print-color-adjust,
+       expandimos contenedores con scroll, y ocultamos lo que solo
+       sirve en pantalla. */
+    @media print {
+      *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+      @page{ size:Letter; margin:14mm 10mm; }
+      body{ background:white; }
+      .rb{ height:4px !important; }
+      .header{ box-shadow:none; border-bottom:1px solid var(--border); }
+      .header-actions, .filters, #student-search, .row-link, #last-updated,
+      .modal-overlay{ display:none !important; }
+      .card{ box-shadow:none; border:1px solid var(--border); break-inside:avoid; page-break-inside:avoid; }
+      .card-header{ break-after:avoid; page-break-after:avoid; }
+      /* Liberar contenedores con scroll para que muestren todo el contenido */
+      .card-body{ max-height:none !important; overflow:visible !important; }
+      .card-body.tbl-wrap{ overflow-x:visible !important; }
+      .card-body.tbl-wrap table{ min-width:0 !important; width:100%; }
+      table{ font-size:.7rem; }
+      thead{ display:table-header-group; }   /* repetir headers en cada página */
+      tr{ break-inside:avoid; page-break-inside:avoid; }
+      .kpis{ grid-template-columns:repeat(5,1fr) !important; }
+      .kpi{ break-inside:avoid; }
+      /* No cortar el chart de barras a mitad de fila */
+      .bar-row{ break-inside:avoid; }
+      /* Asegurar que el área del chart de tendencia se imprime */
+      svg{ max-width:100%; }
+      /* Colors-on por seguridad en badges y barras */
+      .badge, .bar-fill, .kpi .value{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }
+      /* Ocultar pantalla de conexión cuando se imprime con dashboard activo */
+      #connect-section{ display:none !important; }
+      /* Sin sticky en print */
+      .header{ position:static !important; }
     }
   </style>
 </head>
@@ -293,9 +331,10 @@
       <!-- KPIs -->
       <div class="kpis">
         <div class="kpi"><div class="value" id="kpi-records" style="color:var(--azul)">0</div><div class="label">Sesiones registradas</div></div>
-        <div class="kpi"><div class="value" id="kpi-rate" style="color:var(--verde)">—</div><div class="label">% Asistencia</div><div class="sublabel">Promedio ponderado en el período</div></div>
+        <div class="kpi"><div class="value" id="kpi-rate" style="color:var(--verde)">—</div><div class="label">% Asistencia</div><div class="sublabel">Tarde cuenta como asistencia</div></div>
+        <div class="kpi"><div class="value" id="kpi-late" style="color:#7A5C00">0</div><div class="label">Llegadas tarde</div><div class="sublabel" id="kpi-late-sub">—</div></div>
         <div class="kpi"><div class="value" id="kpi-classes" style="color:var(--morado)">0</div><div class="label">Clases activas</div></div>
-        <div class="kpi"><div class="value" id="kpi-alerts" style="color:var(--rojo)">0</div><div class="label">Alertas de ausencia</div><div class="sublabel">Estudiantes con 3+ ausencias</div></div>
+        <div class="kpi"><div class="value" id="kpi-alerts" style="color:var(--rojo)">0</div><div class="label">Estudiantes en riesgo</div><div class="sublabel" id="kpi-alerts-sub">3+ ausencias</div></div>
       </div>
 
       <!-- Filters -->
@@ -332,7 +371,7 @@
       <!-- Charts row -->
       <div class="grid-2">
         <div class="card">
-          <div class="card-header"><h2>Ausencia promedio por clase</h2></div>
+          <div class="card-header"><h2>% Ausencias por clase</h2><span style="font-size:.72rem;color:var(--text2);font-weight:600">Tasa = ausentes / asistencias-estudiante</span></div>
           <div class="card-body" id="chart-by-class"></div>
         </div>
         <div class="card">
@@ -356,7 +395,7 @@
         <div class="card-header"><h2>📋 Registros detallados</h2></div>
         <div class="card-body" style="padding:0;max-height:500px;overflow:auto">
           <table><thead><tr>
-            <th>Fecha</th><th>Clase</th><th>Grado</th><th>Jornada</th><th>Evento</th><th>Franja</th><th>Docente</th><th>Presentes</th><th>Ausentes</th><th>Tasa</th>
+            <th>Fecha</th><th>Clase</th><th>Grado</th><th>Jornada</th><th>Evento</th><th>Franja</th><th>Docente</th><th>A tiempo</th><th>Llegó tarde</th><th>Ausentes</th><th>Tasa</th>
           </tr></thead><tbody id="records-tbody"></tbody></table>
         </div>
       </div>
@@ -370,7 +409,7 @@
         </div>
         <div class="card-body" style="padding:0;max-height:500px;overflow:auto">
           <table><thead><tr>
-            <th>Estudiante</th><th>SIMAT</th><th>Clase</th><th>Grado</th><th>Jornada</th><th>Sesiones</th><th>Ausencias</th><th>% Asistencia</th><th>Última ausencia</th><th></th>
+            <th>Estudiante</th><th>SIMAT</th><th>Clase</th><th>Grado</th><th>Jornada</th><th>Sesiones</th><th>Ausencias</th><th>Tardanzas</th><th>% Asistencia</th><th>Última ausencia</th><th></th>
           </tr></thead><tbody id="students-tbody"></tbody></table>
         </div>
       </div>
@@ -621,30 +660,39 @@ function renderDashboard() {
   // 'Retirado' es una categoría aparte: no es presente ni ausente. No
   // entra en la tasa de asistencia. Se contabiliza solo en la sección
   // "Estudiantes por revisar".
+  // 'Llegó Tarde' (datos viejos: 'Tarde') cuenta como asistencia (sí
+  // vino) — present incluye on-time + tarde. Se contabiliza aparte
+  // en `late` para reportes de puntualidad.
+  const isLate = e => e === 'Llegó Tarde' || e === 'Tarde';
   const sessions = {};
   recs.forEach(r => {
     if (!sessions[r.recordId]) {
       sessions[r.recordId] = {
         recordId: r.recordId, classId: r.classId, className: r.className,
         date: r.date, eventName: r.eventName, slotLabel: r.slotLabel,
-        facilitador: r.facilitador, present: 0, absent: 0, grade: r.grade || '', sede: r.sede || '', jornada: r.jornada || ''
+        facilitador: r.facilitador, present: 0, late: 0, absent: 0, grade: r.grade || '', sede: r.sede || '', jornada: r.jornada || ''
       };
     }
     if (r.estado === 'Retirado') return;
     if (r.estado === 'Ausente') sessions[r.recordId].absent++;
-    else sessions[r.recordId].present++;
+    else {
+      sessions[r.recordId].present++;
+      if (isLate(r.estado)) sessions[r.recordId].late++;
+    }
   });
   const sessionList = Object.values(sessions).sort((a, b) => b.date.localeCompare(a.date));
 
   // ── KPIs ──
   const totalSessions = sessionList.length;
   const totalPresent = sessionList.reduce((s, r) => s + r.present, 0);
-  const totalAbsent = sessionList.reduce((s, r) => s + r.absent, 0);
+  const totalLate    = sessionList.reduce((s, r) => s + r.late, 0);
+  const totalAbsent  = sessionList.reduce((s, r) => s + r.absent, 0);
   const totalAll = totalPresent + totalAbsent;
   const rate = totalAll ? Math.round(totalPresent / totalAll * 100) : 0;
+  const latePct = totalPresent ? Math.round(totalLate / totalPresent * 100) : 0;
   const activeClasses = new Set(sessionList.map(s => s.className)).size;
 
-  // Alerts: students with 3+ absences
+  // Alerts: students with 3+ absences (severity ladder: 3+, 5+)
   const stuAbs = {};
   recs.forEach(r => {
     if (r.estado !== 'Ausente') return;
@@ -661,18 +709,29 @@ function renderDashboard() {
     if (r.className && !stuAbs[key].className) stuAbs[key].className = r.className;
   });
   const alerts = Object.values(stuAbs).filter(s => s.count >= 3).sort((a, b) => b.count - a.count);
+  const critical = alerts.filter(s => s.count >= 5).length;
 
   document.getElementById('kpi-records').textContent = totalSessions;
   document.getElementById('kpi-rate').textContent = totalAll ? rate + '%' : '—';
   document.getElementById('kpi-classes').textContent = activeClasses;
+  document.getElementById('kpi-late').textContent = totalLate;
+  document.getElementById('kpi-late-sub').textContent = totalPresent
+    ? latePct + '% de los que asistieron'
+    : 'Sin asistencias registradas';
   document.getElementById('kpi-alerts').textContent = alerts.length;
+  document.getElementById('kpi-alerts-sub').textContent = critical
+    ? `3+ ausencias · ${critical} crítico${critical === 1 ? '' : 's'} (5+)`
+    : '3+ ausencias';
 
   // ── Chart: absences by class ──
+  // Tracking sessionsCount para mostrar el `n` (sample size). Sin esto, una
+  // clase con 1 sesión y 1 ausente puede inflarse al lado de otra con 30.
   const byClass = {};
   sessionList.forEach(s => {
-    if (!byClass[s.className]) byClass[s.className] = { present: 0, absent: 0 };
+    if (!byClass[s.className]) byClass[s.className] = { present: 0, absent: 0, sessionsCount: 0 };
     byClass[s.className].present += s.present;
     byClass[s.className].absent += s.absent;
+    byClass[s.className].sessionsCount++;
   });
   // Sort by absence RATE (descending), not by absolute count
   const classEntries = Object.entries(byClass).sort((a, b) => {
@@ -686,10 +745,11 @@ function renderDashboard() {
         const total = d.present + d.absent;
         const absPct = total ? Math.round(d.absent / total * 100) : 0;
         const color = absPct > 20 ? 'var(--rojo)' : absPct > 10 ? 'var(--naranja)' : 'var(--amarillo)';
+        const lowN = d.sessionsCount < 3;
         return `<div class="bar-row">
           <div class="bar-label" title="${esc(name)}">${esc(name)}</div>
           <div class="bar-track"><div class="bar-fill" style="width:${absPct}%;background:${color}"></div></div>
-          <div class="bar-val" style="width:110px;text-align:right">${d.absent}/${total} (${absPct}%)</div>
+          <div class="bar-val">${d.absent}/${total} (${absPct}%)<div style="font-size:.66rem;color:var(--text2);font-weight:500;margin-top:1px">${d.sessionsCount} ses.${lowN?' ⚠️':''}</div></div>
         </div>`;
       }).join('') + '</div>'
     : '<div class="empty-msg">Sin datos</div>';
@@ -746,9 +806,11 @@ function renderDashboard() {
   renderStudentList();
 
   // ── Records table ──
+  // s.present = total que asistió (a tiempo + tarde); s.late = subset que llegó tarde.
   const rtb = document.getElementById('records-tbody');
   rtb.innerHTML = sessionList.length
     ? sessionList.map(s => {
+        const onTime = s.present - s.late;
         const total = s.present + s.absent;
         const pct = total ? Math.round(s.present / total * 100) : 0;
         const badgeCls = pct >= 90 ? 'badge-green' : pct >= 75 ? 'badge-orange' : 'badge-red';
@@ -760,12 +822,13 @@ function renderDashboard() {
           <td>${esc(s.eventName)}</td>
           <td>${esc(s.slotLabel)}</td>
           <td>${esc(s.facilitador)}</td>
-          <td style="color:var(--verde);font-weight:700">${s.present}</td>
+          <td style="color:var(--verde);font-weight:700">${onTime}</td>
+          <td style="color:#7A5C00;font-weight:700">${s.late}</td>
           <td style="color:var(--rojo);font-weight:700">${s.absent}</td>
           <td><span class="badge ${badgeCls}">${pct}%</span></td>
         </tr>`;
       }).join('')
-    : '<tr><td colspan="10" class="empty-msg">Sin registros</td></tr>';
+    : '<tr><td colspan="11" class="empty-msg">Sin registros</td></tr>';
 
   // Last updated
   document.getElementById('last-updated').textContent = 'Actualizado: ' + new Date().toLocaleString('es-CO');
@@ -996,6 +1059,7 @@ function renderStudentList() {
   // Aggregate per student using filtered records
   // Retirados se excluyen del listado: aparecen en la sección "Por revisar"
   // y no inflan el conteo de sesiones del estudiante.
+  const isLate = e => e === 'Llegó Tarde' || e === 'Tarde';
   const stuMap = {};
   recs.forEach(r => {
     if (r.estado === 'Retirado') return;
@@ -1008,13 +1072,15 @@ function renderStudentList() {
         className: r.className || '',
         grade: r.grade || '',
         jornada: r.jornada || '',
-        sessions: 0, absences: 0, lastAbs: ''
+        sessions: 0, absences: 0, lates: 0, lastAbs: ''
       };
     }
     stuMap[key].sessions++;
     if (r.estado === 'Ausente') {
       stuMap[key].absences++;
       if (r.date > stuMap[key].lastAbs) stuMap[key].lastAbs = r.date;
+    } else if (isLate(r.estado)) {
+      stuMap[key].lates++;
     }
   });
   let students = Object.values(stuMap);
@@ -1037,6 +1103,7 @@ function renderStudentList() {
         const rate = s.sessions ? Math.round((s.sessions - s.absences) / s.sessions * 100) : 0;
         const rateCls = rate >= 90 ? 'badge-green' : rate >= 75 ? 'badge-orange' : 'badge-red';
         const absCls = s.absences >= 5 ? 'badge-red' : s.absences >= 3 ? 'badge-orange' : '';
+        const lateCls = s.lates >= 5 ? 'badge-orange' : '';
         const clickable = s.simat ? `class="clickable" onclick="openStudentCard('${esc(s.simat)}')"` : '';
         return `<tr ${clickable}>
           <td><strong>${esc(s.apellidos)}</strong>, ${esc(s.nombre)}</td>
@@ -1046,12 +1113,13 @@ function renderStudentList() {
           <td>${esc(s.jornada)}</td>
           <td>${s.sessions}</td>
           <td>${absCls ? `<span class="badge ${absCls}">${s.absences}</span>` : s.absences}</td>
+          <td>${lateCls ? `<span class="badge ${lateCls}">${s.lates}</span>` : (s.lates || '—')}</td>
           <td><span class="badge ${rateCls}">${rate}%</span></td>
           <td>${s.lastAbs ? fmtDate(s.lastAbs) : '—'}</td>
           <td>${s.simat ? '<span class="row-link">Ver ficha →</span>' : ''}</td>
         </tr>`;
       }).join('')
-    : '<tr><td colspan="10" class="empty-msg">Sin estudiantes que coincidan con la búsqueda.</td></tr>';
+    : '<tr><td colspan="11" class="empty-msg">Sin estudiantes que coincidan con la búsqueda.</td></tr>';
 }
 
 // ═══════════════════════════════════
@@ -1082,6 +1150,7 @@ function openStudentCard(simat) {
 
   const sessions = allRecs.length;
   const absences = allRecs.filter(r => r.estado === 'Ausente').length;
+  const lates    = allRecs.filter(r => r.estado === 'Llegó Tarde' || r.estado === 'Tarde').length;
   const present = sessions - absences;
   const rate = sessions ? Math.round(present / sessions * 100) : 0;
 
@@ -1127,6 +1196,7 @@ function openStudentCard(simat) {
           <div class="ficha-kpis">
             <div class="ficha-kpi"><div class="v" style="color:var(--azul)">${sessions}</div><div class="l">Sesiones</div></div>
             <div class="ficha-kpi"><div class="v" style="color:var(--verde)">${present}</div><div class="l">Presentes</div></div>
+            <div class="ficha-kpi"><div class="v" style="color:#7A5C00">${lates}</div><div class="l">Llegó tarde</div></div>
             <div class="ficha-kpi"><div class="v" style="color:var(--rojo)">${absences}</div><div class="l">Ausencias</div></div>
             <div class="ficha-kpi"><div class="v" style="color:${rateColor}">${rate}%</div><div class="l">Asistencia</div></div>
           </div>
@@ -1151,14 +1221,18 @@ function openStudentCard(simat) {
           <table class="ficha-hist">
             <thead><tr><th>Fecha</th><th>Evento</th><th>Franja</th><th>Docente</th><th>Estado</th></tr></thead>
             <tbody>
-              ${hist.slice(0, 30).map(r => `
-                <tr>
+              ${hist.slice(0, 30).map(r => {
+                const isLateRow = r.estado === 'Llegó Tarde' || r.estado === 'Tarde';
+                const isAbsentRow = r.estado === 'Ausente';
+                const cls = isAbsentRow ? 'ausente' : (isLateRow ? 'tarde' : 'presente');
+                return `<tr>
                   <td>${fmtDate(r.date)}</td>
                   <td>${esc(r.eventName) || '—'}</td>
                   <td>${esc(r.slotLabel) || '—'}</td>
                   <td>${esc(r.facilitador) || '—'}</td>
-                  <td class="${r.estado === 'Ausente' ? 'ausente' : 'presente'}">${esc(r.estado)}</td>
-                </tr>`).join('')}
+                  <td class="${cls}">${esc(r.estado)}</td>
+                </tr>`;
+              }).join('')}
             </tbody>
           </table>
           ${hist.length > 30 ? `<div style="font-size:.7rem;color:var(--text2);margin-top:6px;font-style:italic">Mostrando las 30 sesiones más recientes de ${hist.length} en total.</div>` : ''}
