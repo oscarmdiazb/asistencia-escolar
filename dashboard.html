@@ -310,7 +310,7 @@
         <button style="font-family:var(--fh);font-weight:700;background:var(--bg);border:2px solid var(--border);border-radius:8px;padding:8px 14px;cursor:pointer;font-size:.82rem" onclick="clearFilters()">Limpiar filtros</button>
       </div>
 
-      <!-- Por revisar (reportados + no listados) -->
+      <!-- Por revisar (retirados + no listados) -->
       <div class="card" id="review-card" style="display:none;border-left:4px solid var(--naranja)">
         <div class="card-header">
           <h2>🚩 Estudiantes por revisar</h2>
@@ -618,7 +618,7 @@ function renderDashboard() {
   const recs = getFilteredRecords();
 
   // ── Aggregate into sessions (group by recordId) ──
-  // 'Reportado' es una categoría aparte: no es presente ni ausente. No
+  // 'Retirado' es una categoría aparte: no es presente ni ausente. No
   // entra en la tasa de asistencia. Se contabiliza solo en la sección
   // "Estudiantes por revisar".
   const sessions = {};
@@ -630,7 +630,7 @@ function renderDashboard() {
         facilitador: r.facilitador, present: 0, absent: 0, grade: r.grade || '', sede: r.sede || '', jornada: r.jornada || ''
       };
     }
-    if (r.estado === 'Reportado') return;
+    if (r.estado === 'Retirado') return;
     if (r.estado === 'Ausente') sessions[r.recordId].absent++;
     else sessions[r.recordId].present++;
   });
@@ -739,7 +739,7 @@ function renderDashboard() {
   // ── Time series ──
   renderTimeSeries(recs);
 
-  // ── Estudiantes por revisar (reportados + no listados) ──
+  // ── Estudiantes por revisar (retirados + no listados) ──
   renderReview(recs);
 
   // ── Student list ──
@@ -780,11 +780,11 @@ function renderTimeSeries(recs) {
   const sub = document.getElementById('ts-subtitle');
 
   // Group by date: count present vs total
-  // Reportado se excluye del total porque no representa asistencia real.
+  // Retirado se excluye del total porque no representa asistencia real.
   const byDate = {};
   recs.forEach(r => {
     if (!r.date) return;
-    if (r.estado === 'Reportado') return;
+    if (r.estado === 'Retirado') return;
     const d = String(r.date).slice(0, 10);
     if (!byDate[d]) byDate[d] = { present: 0, total: 0 };
     byDate[d].total++;
@@ -862,11 +862,11 @@ function renderTimeSeries(recs) {
 }
 
 // ═══════════════════════════════════
-// POR REVISAR — reportados como "no listados" + estudiantes agregados
+// POR REVISAR — retirados ("sobran") + estudiantes agregados ("faltan")
 // ═══════════════════════════════════
 //
 // Dos categorías:
-//   1) Sobran  = filas con estado === 'Reportado'
+//   1) Sobran  = filas con estado === 'Retirado'
 //      → estudiante en el roster que un profe marcó como "no debería estar"
 //   2) Faltan  = filas con SIMAT vacío o que empieza con 'TMP-'
 //      → estudiante que el profe agregó en el aula porque no estaba en lista
@@ -881,7 +881,7 @@ function renderReview(recs) {
 
   const isExtra = simat => !simat || /^TMP-/i.test(String(simat));
 
-  // Agrupar "sobran" por SIMAT (el mismo estudiante reportado por varios
+  // Agrupar "sobran" por SIMAT (el mismo estudiante retirado por varios
   // profes o varias veces aparece como una sola tarjeta con conteo).
   const sobranMap = {};
   // Agrupar "faltan" por (className + nombre completo) — el tempId cambia
@@ -889,7 +889,7 @@ function renderReview(recs) {
   const faltanMap = {};
 
   recs.forEach(r => {
-    if (r.estado === 'Reportado' && !isExtra(r.simat)) {
+    if (r.estado === 'Retirado' && !isExtra(r.simat)) {
       const key = String(r.simat);
       if (!sobranMap[key]) {
         sobranMap[key] = {
@@ -958,7 +958,7 @@ function renderReview(recs) {
             ${esc(entry.className || '')}${entry.grade ? ' · Grado ' + esc(entry.grade) : ''}${entry.jornada ? ' · ' + esc(entry.jornada) : ''}
           </div>
           <div style="font-size:.74rem;color:var(--text2);margin-top:4px">
-            Reportado por: <strong>${esc(teachers)}</strong> · última vez ${fmtDate(lastDate)}
+            Retirado por: <strong>${esc(teachers)}</strong> · última vez ${fmtDate(lastDate)}
           </div>
           ${cmtTxt}
         </div>
@@ -994,11 +994,11 @@ function renderStudentList() {
   const search = (document.getElementById('student-search').value || '').trim().toLowerCase();
 
   // Aggregate per student using filtered records
-  // Reportados se excluyen del listado: aparecen en la sección "Por revisar"
+  // Retirados se excluyen del listado: aparecen en la sección "Por revisar"
   // y no inflan el conteo de sesiones del estudiante.
   const stuMap = {};
   recs.forEach(r => {
-    if (r.estado === 'Reportado') return;
+    if (r.estado === 'Retirado') return;
     const key = r.simat || (r.apellido1 + '_' + r.nombre1 + '_' + r.classId);
     if (!stuMap[key]) {
       stuMap[key] = {
@@ -1062,11 +1062,11 @@ let CURRENT_FICHA_STUDENT = null;
 function openStudentCard(simat) {
   if (!DATA || !simat) return;
   // Pull ALL records for this student (ignore filters except school scope).
-  // Excluimos las filas con estado='Reportado' — esas viven en "Por revisar"
+  // Excluimos las filas con estado='Retirado' — esas viven en "Por revisar"
   // y no representan asistencia real.
   const allRecs = DATA.records
     .filter(r => String(r.simat) === String(simat))
-    .filter(r => r.estado !== 'Reportado');
+    .filter(r => r.estado !== 'Retirado');
   if (!allRecs.length) { alert('Este estudiante no tiene registros.'); return; }
 
   const r0 = allRecs[0];
