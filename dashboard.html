@@ -162,6 +162,43 @@
     .ficha-hist td.presente{color:var(--verde);font-weight:700}
     .ficha-hist td.ausente{color:var(--rojo);font-weight:700}
     .ficha-hist td.tarde{color:#7A5C00;font-weight:700}
+
+    /* ── Reporte ejecutivo ──
+       Vista 1-página: encabezado + intro factual + 5 KPIs + chart de
+       tendencia + 2 listas (clases con + ausencias / críticos). Se ve
+       igual en pantalla y al imprimir (Letter, 1 hoja). */
+    .rep{padding:0;font-family:var(--fb)}
+    .rep-head{background:linear-gradient(135deg,#1A2A4A 0%,#0D3559 100%);color:white;padding:20px 28px}
+    .rep-head .brand{font-family:var(--fh);font-weight:900;font-size:1.3rem}
+    .rep-head .brand .a{color:var(--rojo)} .rep-head .brand .p{color:var(--azul)}
+    .rep-head .subtitle{font-family:var(--fh);font-weight:700;font-size:1rem;margin-top:2px;opacity:.9}
+    .rep-head .school{font-size:.82rem;opacity:.75;margin-top:6px}
+    .rep-head .period{font-size:.78rem;opacity:.7;margin-top:2px}
+    .rep-rb{height:4px;background:linear-gradient(to right,var(--rojo) 0%,var(--rojo) 16.6%,var(--naranja) 16.6%,var(--naranja) 33.3%,var(--amarillo) 33.3%,var(--amarillo) 50%,var(--verde) 50%,var(--verde) 66.6%,var(--azul) 66.6%,var(--azul) 83.3%,var(--morado) 83.3%,var(--morado) 100%)}
+    .rep-body{padding:20px 28px}
+    .rep-section{margin-bottom:18px}
+    .rep-section h3{font-family:var(--fh);font-weight:800;font-size:.78rem;text-transform:uppercase;color:var(--text2);letter-spacing:.05em;margin-bottom:8px}
+    .rep-intro{font-size:.92rem;line-height:1.5;color:var(--text);background:var(--bg);border-left:3px solid var(--azul);padding:12px 14px;border-radius:6px}
+    .rep-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+    .rep-kpi{background:var(--bg);border-radius:10px;padding:14px 8px;text-align:center}
+    .rep-kpi .v{font-family:var(--fh);font-weight:900;font-size:1.6rem;line-height:1.05}
+    .rep-kpi .l{font-size:.66rem;text-transform:uppercase;color:var(--text2);letter-spacing:.04em;margin-top:4px}
+    .rep-chart{width:100%;height:170px}
+    .rep-chart svg{width:100%;height:100%;display:block}
+    .rep-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .rep-list{font-size:.85rem}
+    .rep-list .row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)}
+    .rep-list .row:last-child{border-bottom:none}
+    .rep-list .name{flex:1;font-family:var(--fh);font-weight:700;font-size:.82rem}
+    .rep-list .meta{font-size:.7rem;color:var(--text2);font-weight:500}
+    .rep-list .val{font-family:var(--fh);font-weight:800;font-size:.82rem;flex-shrink:0}
+    .rep-list .empty{font-size:.78rem;color:var(--text2);font-style:italic;padding:10px 0}
+    .rep-foot{padding:12px 28px;background:var(--bg);font-size:.7rem;color:var(--text2);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+    @media (max-width:600px){
+      .rep-kpis{grid-template-columns:repeat(2,1fr)}
+      .rep-cols{grid-template-columns:1fr}
+      .rep-body{padding:16px 18px}
+    }
     .ficha-foot{padding:12px 28px;background:var(--bg);font-size:.7rem;color:var(--text2);display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border)}
 
     /* Tables: horizontal scroll on narrow screens */
@@ -253,30 +290,36 @@
       @page{ size:Letter; margin:14mm 10mm; }
       body{ background:white; }
       .rb{ height:4px !important; }
-      .header{ box-shadow:none; border-bottom:1px solid var(--border); }
-      .header-actions, .filters, #student-search, .row-link, #last-updated,
-      .modal-overlay{ display:none !important; }
+      .header{ box-shadow:none; border-bottom:1px solid var(--border); position:static !important; }
+      .header-actions, .filters, #student-search, .row-link, #last-updated{ display:none !important; }
+      #connect-section{ display:none !important; }
       .card{ box-shadow:none; border:1px solid var(--border); break-inside:avoid; page-break-inside:avoid; }
       .card-header{ break-after:avoid; page-break-after:avoid; }
-      /* Liberar contenedores con scroll para que muestren todo el contenido */
       .card-body{ max-height:none !important; overflow:visible !important; }
       .card-body.tbl-wrap{ overflow-x:visible !important; }
       .card-body.tbl-wrap table{ min-width:0 !important; width:100%; }
       table{ font-size:.7rem; }
-      thead{ display:table-header-group; }   /* repetir headers en cada página */
+      thead{ display:table-header-group; }
       tr{ break-inside:avoid; page-break-inside:avoid; }
       .kpis{ grid-template-columns:repeat(5,1fr) !important; }
       .kpi{ break-inside:avoid; }
-      /* No cortar el chart de barras a mitad de fila */
       .bar-row{ break-inside:avoid; }
-      /* Asegurar que el área del chart de tendencia se imprime */
       svg{ max-width:100%; }
-      /* Colors-on por seguridad en badges y barras */
       .badge, .bar-fill, .kpi .value{ print-color-adjust:exact; -webkit-print-color-adjust:exact; }
-      /* Ocultar pantalla de conexión cuando se imprime con dashboard activo */
-      #connect-section{ display:none !important; }
-      /* Sin sticky en print */
-      .header{ position:static !important; }
+
+      /* Por defecto, ocultar modales en print */
+      .modal-overlay:not(.open){ display:none !important; }
+      .modal-overlay.open{ display:block !important; position:static !important; padding:0 !important; background:white !important; }
+      .modal-overlay.open .modal{ box-shadow:none !important; border:none !important; max-width:none !important; margin:0 !important; }
+      .modal-overlay.open .modal-actions{ display:none !important; }
+
+      /* Si CUALQUIER modal está abierto, ocultar el dashboard de fondo */
+      body:has(.modal-overlay.open) .header,
+      body:has(.modal-overlay.open) .main{ display:none !important; }
+
+      /* Reporte ejecutivo: 1 hoja, secciones más compactas */
+      .rep-section{ margin-bottom:14px; break-inside:avoid; }
+      .rep-cols{ break-inside:avoid; }
     }
   </style>
 </head>
@@ -297,6 +340,7 @@
         </div>
       </div>
       <div class="header-actions">
+        <button class="btn-hdr" onclick="openReporte()" id="btn-reporte" style="display:none" title="Generar reporte ejecutivo">📄 <span class="btn-lbl">Reporte ejecutivo</span></button>
         <button class="btn-hdr" onclick="refreshData()" title="Actualizar datos">🔄 <span class="btn-lbl">Actualizar</span></button>
         <button class="btn-hdr" onclick="disconnect()" id="btn-disconnect" style="display:none" title="Cambiar colegio">↩ <span class="btn-lbl">Cambiar colegio</span></button>
       </div>
@@ -433,6 +477,18 @@
     </div>
   </div>
 
+  <!-- Reporte ejecutivo modal -->
+  <div class="modal-overlay" id="reporte-modal" onclick="if(event.target===this) closeReporte()">
+    <div class="modal">
+      <div class="modal-actions">
+        <button class="primary" onclick="window.print()">🖨 Imprimir / Guardar PDF</button>
+        <div class="spacer"></div>
+        <button class="close-btn" onclick="closeReporte()">✕ Cerrar</button>
+      </div>
+      <div id="reporte-container"></div>
+    </div>
+  </div>
+
 <script>
 'use strict';
 
@@ -531,6 +587,7 @@ async function connectAndLoad() {
     document.getElementById('school-name-display').textContent = result.schoolName || '';
     document.getElementById('school-code-display').textContent = result.schoolCode || '';
     document.getElementById('btn-disconnect').style.display = 'inline-flex';
+    document.getElementById('btn-reporte').style.display = 'inline-flex';
 
     // Populate filters
     populateFilters();
@@ -570,6 +627,7 @@ function disconnect() {
   document.getElementById('school-name-display').textContent = '';
   document.getElementById('school-code-display').textContent = '';
   document.getElementById('btn-disconnect').style.display = 'none';
+  document.getElementById('btn-reporte').style.display = 'none';
   document.getElementById('main-content').style.display = 'none';
   document.getElementById('connect-section').style.display = 'block';
 }
@@ -1255,6 +1313,248 @@ function closeStudentCard() {
   document.getElementById('student-modal').classList.remove('open');
   document.body.style.overflow = '';
   CURRENT_FICHA_STUDENT = null;
+}
+
+// ═══════════════════════════════════
+// REPORTE EJECUTIVO
+// ═══════════════════════════════════
+// Vista 1-página orientada al rector. Respeta los filtros activos del
+// dashboard (clase/jornada/evento/docente/estudiante/fechas). Si el
+// rector quiere una jornada o sede aparte, Oscar filtra primero y
+// genera el reporte. Intro neutral — sin interpretación.
+function openReporte() {
+  if (!DATA) return;
+  const recs = getFilteredRecords();
+  const isLate = e => e === 'Llegó Tarde' || e === 'Tarde';
+  const isExtra = simat => !simat || /^TMP-/i.test(String(simat));
+
+  // Período: prioriza filter-from/to; si no, min/max de los registros
+  let from = document.getElementById('filter-from').value;
+  let to   = document.getElementById('filter-to').value;
+  if (!from || !to) {
+    const dates = recs.map(r => String(r.date || '').slice(0, 10)).filter(Boolean).sort();
+    if (dates.length) {
+      if (!from) from = dates[0];
+      if (!to)   to   = dates[dates.length - 1];
+    }
+  }
+
+  // Cardinales únicas
+  const sessions = new Set(recs.map(r => r.recordId)).size;
+  const teachers = new Set(recs.map(r => r.facilitador).filter(Boolean)).size;
+  const classes  = new Set(recs.map(r => r.className).filter(Boolean)).size;
+  const studentsCount = new Set(
+    recs.filter(r => !isExtra(r.simat) && r.estado !== 'Retirado').map(r => r.simat)
+  ).size;
+
+  // Asistencia / tardanzas
+  let totalPresent = 0, totalAbsent = 0, totalLate = 0;
+  recs.forEach(r => {
+    if (r.estado === 'Retirado') return;
+    if (r.estado === 'Ausente') totalAbsent++;
+    else {
+      totalPresent++;
+      if (isLate(r.estado)) totalLate++;
+    }
+  });
+  const totalAll = totalPresent + totalAbsent;
+  const rate = totalAll ? Math.round(totalPresent / totalAll * 100) : 0;
+  const rateColor = rate >= 90 ? '#4BAD4E' : rate >= 75 ? '#F47920' : '#E8302A';
+
+  // Top 5 clases con más ausencias (por tasa, con sample size)
+  const byClass = {};
+  recs.forEach(r => {
+    if (r.estado === 'Retirado') return;
+    if (!byClass[r.className]) byClass[r.className] = { name: r.className, sessionsSet: new Set(), absent: 0, total: 0 };
+    byClass[r.className].sessionsSet.add(r.recordId);
+    byClass[r.className].total++;
+    if (r.estado === 'Ausente') byClass[r.className].absent++;
+  });
+  const topClasses = Object.values(byClass)
+    .map(c => ({ name: c.name, sessions: c.sessionsSet.size, absent: c.absent, total: c.total, pct: c.total ? Math.round(c.absent / c.total * 100) : 0 }))
+    .sort((a, b) => b.pct - a.pct || b.absent - a.absent)
+    .slice(0, 5);
+
+  // Estudiantes con 5+ ausencias
+  const stuAbs = {};
+  recs.forEach(r => {
+    if (r.estado !== 'Ausente') return;
+    if (isExtra(r.simat)) return;
+    const key = r.simat;
+    if (!stuAbs[key]) stuAbs[key] = {
+      simat: r.simat,
+      apellidos: [r.apellido1, r.apellido2].filter(Boolean).join(' '),
+      nombre: [r.nombre1, r.nombre2].filter(Boolean).join(' '),
+      className: r.className || '', count: 0
+    };
+    stuAbs[key].count++;
+  });
+  const critical = Object.values(stuAbs)
+    .filter(s => s.count >= 5)
+    .sort((a, b) => b.count - a.count);
+
+  // Intro neutral — solo hechos
+  const fc = document.getElementById('filter-class').value;
+  const fj = document.getElementById('filter-jornada').value;
+  const scopeStr = fc ? ` en la clase ${fc}` : (fj ? ` en la jornada ${fj}` : ' en el colegio');
+  const periodLine = (from && to) ? `Entre el ${fmtDate(from)} y el ${fmtDate(to)}` : 'En el período registrado';
+  let intro = `${periodLine}${scopeStr} se registraron ${sessions} sesion${sessions === 1 ? '' : 'es'} de asistencia`;
+  if (teachers) intro += ` con ${teachers} docente${teachers === 1 ? '' : 's'}`;
+  if (classes)  intro += ` en ${classes} clase${classes === 1 ? '' : 's'}`;
+  if (studentsCount) intro += `, abarcando ${studentsCount} estudiante${studentsCount === 1 ? '' : 's'}`;
+  intro += `. La tasa de asistencia general fue del ${rate}%`;
+  if (totalLate > 0) intro += `, con ${totalLate} llegada${totalLate === 1 ? '' : 's'} tarde registrada${totalLate === 1 ? '' : 's'}`;
+  intro += '.';
+  if (critical.length > 0) {
+    intro += ` ${critical.length} estudiante${critical.length === 1 ? '' : 's'} present${critical.length === 1 ? 'ó' : 'aron'} 5 o más ausencias en el período.`;
+  }
+
+  // Chart SVG compacto (sin tooltip — es para imprimir)
+  const chartSvg = buildReporteChartSVG(recs);
+
+  const schoolName = DATA.schoolName || '';
+  const schoolCode = DATA.schoolCode || '';
+  const today = new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
+  const periodHeader = (from && to) ? `Período: ${fmtDate(from)} – ${fmtDate(to)}` : '';
+
+  const html = `
+    <div class="rep" id="rep-printable">
+      <div class="rep-head">
+        <div class="brand"><span class="a">Aula</span><span class="p">Presente</span></div>
+        <div class="subtitle">Reporte ejecutivo</div>
+        <div class="school">${esc(schoolName)}${schoolCode ? ' · ' + esc(schoolCode) : ''}</div>
+        ${periodHeader ? `<div class="period">${periodHeader}</div>` : ''}
+      </div>
+      <div class="rep-rb"></div>
+      <div class="rep-body">
+        <div class="rep-section">
+          <div class="rep-intro">${esc(intro)}</div>
+        </div>
+
+        <div class="rep-section">
+          <h3>Resumen</h3>
+          <div class="rep-kpis">
+            <div class="rep-kpi"><div class="v" style="color:var(--azul)">${sessions}</div><div class="l">Sesiones</div></div>
+            <div class="rep-kpi"><div class="v" style="color:var(--text)">${studentsCount}</div><div class="l">Estudiantes</div></div>
+            <div class="rep-kpi"><div class="v" style="color:var(--morado)">${classes}</div><div class="l">Clases</div></div>
+            <div class="rep-kpi"><div class="v" style="color:var(--text)">${teachers}</div><div class="l">Docentes</div></div>
+            <div class="rep-kpi"><div class="v" style="color:${rateColor}">${rate}%</div><div class="l">Asistencia</div></div>
+          </div>
+        </div>
+
+        <div class="rep-section">
+          <h3>Pulso de asistencia</h3>
+          <div class="rep-chart">${chartSvg}</div>
+        </div>
+
+        <div class="rep-section">
+          <div class="rep-cols">
+            <div>
+              <h3>Clases con más ausencias</h3>
+              <div class="rep-list">
+                ${topClasses.length
+                  ? topClasses.map(c => {
+                      const color = c.pct > 20 ? 'var(--rojo)' : (c.pct > 10 ? 'var(--naranja)' : 'var(--text2)');
+                      return `<div class="row">
+                        <div style="flex:1;min-width:0">
+                          <div class="name">${esc(c.name)}</div>
+                          <div class="meta">${c.sessions} ses. · ${c.absent}/${c.total} ausencias</div>
+                        </div>
+                        <div class="val" style="color:${color}">${c.pct}%</div>
+                      </div>`;
+                    }).join('')
+                  : '<div class="empty">Sin datos.</div>'}
+              </div>
+            </div>
+            <div>
+              <h3>Estudiantes con 5+ ausencias</h3>
+              <div class="rep-list">
+                ${critical.length
+                  ? critical.slice(0, 8).map(s => `<div class="row">
+                      <div style="flex:1;min-width:0">
+                        <div class="name">${esc(s.apellidos)}, ${esc(s.nombre)}</div>
+                        <div class="meta">${esc(s.className)}</div>
+                      </div>
+                      <div class="val" style="color:var(--rojo)">${s.count}</div>
+                    </div>`).join('') + (critical.length > 8 ? `<div class="meta" style="padding:6px 0;text-align:center">+ ${critical.length - 8} estudiante${critical.length - 8 === 1 ? '' : 's'} más</div>` : '')
+                  : '<div class="empty">Sin estudiantes en este nivel.</div>'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="rep-foot">
+        <span>Generado el ${today}</span>
+        <span>AulaPresente</span>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('reporte-container').innerHTML = html;
+  document.getElementById('reporte-modal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeReporte() {
+  document.getElementById('reporte-modal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// SVG compacto para el reporte (sin tooltip — es para imprimir)
+function buildReporteChartSVG(recs) {
+  const byDate = {};
+  recs.forEach(r => {
+    if (!r.date) return;
+    if (r.estado === 'Retirado') return;
+    const d = String(r.date).slice(0, 10);
+    if (!byDate[d]) byDate[d] = { present: 0, total: 0 };
+    byDate[d].total++;
+    if (r.estado !== 'Ausente') byDate[d].present++;
+  });
+  const points = Object.entries(byDate)
+    .map(([date, d]) => ({ date, pct: d.total ? (d.present / d.total * 100) : 0, present: d.present, total: d.total }))
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  if (!points.length) {
+    return '<div style="display:flex;align-items:center;justify-content:center;height:170px;color:var(--text2);font-size:.85rem;font-style:italic">Sin datos para construir la tendencia.</div>';
+  }
+
+  const W = 800, H = 170, pad = { l: 40, r: 14, t: 16, b: 28 };
+  const innerW = W - pad.l - pad.r, innerH = H - pad.t - pad.b;
+  const xFor = i => pad.l + (points.length <= 1 ? innerW / 2 : (i / (points.length - 1)) * innerW);
+  const yFor = pct => pad.t + innerH - (pct / 100) * innerH;
+
+  let grid = '';
+  [0, 25, 50, 75, 100].forEach(v => {
+    const y = yFor(v);
+    grid += `<line x1="${pad.l}" y1="${y}" x2="${W - pad.r}" y2="${y}" stroke="#E0E4EF" stroke-dasharray="${v === 0 || v === 100 ? '0' : '3,3'}"/>`;
+    grid += `<text x="${pad.l - 6}" y="${y + 4}" text-anchor="end" font-family="Nunito" font-weight="700" font-size="9" fill="#666677">${v}%</text>`;
+  });
+
+  const labelIdx = points.length <= 4
+    ? points.map((_, i) => i)
+    : [0, Math.floor(points.length / 3), Math.floor(2 * points.length / 3), points.length - 1];
+  const xLabels = labelIdx.map(i => {
+    const x = xFor(i);
+    return `<text x="${x}" y="${H - 8}" text-anchor="middle" font-family="Nunito" font-weight="700" font-size="9" fill="#666677">${fmtDateShort(points[i].date)}</text>`;
+  }).join('');
+
+  const poly = points.map((p, i) => `${xFor(i)},${yFor(p.pct)}`).join(' ');
+  const area = `M${xFor(0)},${yFor(0)} L` + points.map((p, i) => `${xFor(i)},${yFor(p.pct)}`).join(' L') + ` L${xFor(points.length - 1)},${yFor(0)} Z`;
+
+  const dots = points.map((p, i) => {
+    const x = xFor(i), y = yFor(p.pct);
+    const color = p.pct >= 90 ? '#4BAD4E' : p.pct >= 75 ? '#F47920' : '#E8302A';
+    return `<circle cx="${x}" cy="${y}" r="4" fill="${color}" stroke="white" stroke-width="1.5"/>`;
+  }).join('');
+
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    ${grid}
+    <path d="${area}" fill="#3AABE3" fill-opacity="0.08"/>
+    <polyline points="${poly}" fill="none" stroke="#3AABE3" stroke-width="2" stroke-linejoin="round"/>
+    ${dots}
+    ${xLabels}
+  </svg>`;
 }
 
 function fichaFilename(ext) {
