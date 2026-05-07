@@ -121,8 +121,8 @@
     .stu-tile:active{background:var(--bg)}
     .stu-tile.aus .sname{color:var(--text2)}
     .stu-tile.tar .sname{color:#7A5C00}
-    .stu-tile.rep .sname{color:#999;text-decoration:line-through}
-    .stu-tile.rep .ssimat{color:#999}
+    .stu-tile.rep .sname,.stu-tile.inv .sname{color:#999;text-decoration:line-through}
+    .stu-tile.rep .ssimat,.stu-tile.inv .ssimat{color:#999}
     .snum{font-size:.72rem;color:var(--text2);width:22px;flex-shrink:0;font-family:var(--fh);font-weight:700}
     .sinfo{flex:1;min-width:0}
     .sname{font-family:var(--fh);font-weight:700;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -131,7 +131,7 @@
     .sextra{display:inline-block;margin-left:6px;font-size:.62rem;color:white;background:var(--naranja);padding:1px 6px;border-radius:10px;font-weight:800;letter-spacing:.04em}
     .schip{font-family:var(--fh);font-weight:700;font-size:.7rem;padding:4px 10px;border-radius:20px;
       color:white;flex-shrink:0;text-transform:uppercase;letter-spacing:.03em;transition:background .15s}
-    .cp{background:var(--verde)}.ca{background:var(--rojo)}.cl{background:var(--amarillo);color:#5A4400}.cr{background:#888;color:white}
+    .cp{background:var(--verde)}.ca{background:var(--rojo)}.cl{background:var(--amarillo);color:#5A4400}.cr{background:#888;color:white}.ci{background:#5A4D6E;color:white}
     .ctr-chip-r{background:#888;color:white;border-radius:20px;padding:2px 8px;font-size:.75rem}
     .add-extra-row{padding:14px 16px;border-top:1px dashed var(--border);background:var(--bg)}
 
@@ -397,7 +397,7 @@
     <div class="att-hdr" id="att-hdr"></div>
     <div id="att-alert" class="alert-banner" style="display:none">⚠️ Ya existe un registro para esta sesión — será reemplazado al guardar.</div>
     <div class="content" style="padding-top:8px">
-      <p class="screen-hint" style="margin:8px 14px 8px">Toca para cambiar estado: <strong style="color:var(--verde)">PRESENTE</strong> → <strong style="color:var(--rojo)">AUSENTE</strong> → <strong style="color:#7A5C00">LLEGÓ TARDE</strong> → presente. <strong>Mantén presionado</strong> sobre un nombre para marcarlo como retirado o agregar un comentario.</p>
+      <p class="screen-hint" style="margin:8px 14px 8px">Toca para cambiar estado: <strong style="color:var(--verde)">PRESENTE</strong> → <strong style="color:var(--rojo)">AUSENTE</strong> → <strong style="color:#7A5C00">LLEGÓ TARDE</strong> → presente. <strong>Mantén presionado</strong> sobre un nombre para marcarlo como retirado, no válido o agregar un comentario.</p>
       <div class="card" id="stu-list"></div>
     </div>
     <div class="bottom-bar">
@@ -629,6 +629,7 @@
       <div class="mtitle" id="stu-menu-title" style="font-size:1rem"></div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">
         <button class="btn bs" id="stu-menu-report" onclick="stuMenuReport()" style="text-align:left;justify-content:flex-start;padding:14px 16px"></button>
+        <button class="btn bs" id="stu-menu-invalid" onclick="stuMenuInvalid()" style="text-align:left;justify-content:flex-start;padding:14px 16px"></button>
         <button class="btn bs" id="stu-menu-comment" onclick="stuMenuComment()" style="text-align:left;justify-content:flex-start;padding:14px 16px"></button>
         <button class="btn-link" onclick="closeStuMenu()" style="margin-top:4px">Cancelar</button>
       </div>
@@ -674,8 +675,9 @@
           <input type="text" id="ex-n2" autocomplete="off" autocapitalize="characters">
         </div>
         <div class="fg">
-          <label>Documento</label>
+          <label>Documento <span style="color:var(--rojo)">*</span></label>
           <input type="text" id="ex-doc" inputmode="numeric" autocomplete="off">
+          <div style="font-size:.72rem;color:var(--text2);margin-top:4px">Si no sabes el documento, escribe <strong>-99</strong>.</div>
         </div>
       </div>
       <div class="macts">
@@ -716,15 +718,17 @@ let S = { classes:[], events:[], slots:[], records:[], profile:{}, cloud:{}, syn
 let stack = ['home'];
 
 // Session
-//   reported = student IDs marcados como "no listado" (estudiante en el roster
-//              que el profe reporta como que no debería estar)
+//   reported = student IDs marcados como "Retirado" (estaba en el roster pero
+//              ya se fue del colegio — dar de baja del SIMAT)
+//   invalid  = student IDs marcados como "No válido" (la lista está mal —
+//              este estudiante no era de este grupo, error de roster)
 //   comments = { studentId: texto } — nota libre del profe por estudiante en
 //              esta sesión (no persiste entre sesiones)
 //   extras   = [{id, simat (= tempId TMP-...), apellido1, apellido2, nombre1, nombre2}]
 //              estudiantes agregados durante la sesión que no estaban en el roster
 let sess = { classId:null, eventId:null, slotLabel:null, date:null,
              absent:new Set(), late:new Set(),
-             reported:new Set(), comments:{}, extras:[] };
+             reported:new Set(), invalid:new Set(), comments:{}, extras:[] };
 
 const DOTS = ['dr','dn','dy','dg','da','dm'];
 
@@ -752,6 +756,7 @@ function load() {
   S.records.forEach(r => {
     if (!Array.isArray(r.lateIds))     r.lateIds = [];
     if (!Array.isArray(r.reportedIds)) r.reportedIds = [];
+    if (!Array.isArray(r.invalidIds))  r.invalidIds = [];
     if (!Array.isArray(r.extras))      r.extras = [];
     if (!r.comments || typeof r.comments !== 'object') r.comments = {};
   });
@@ -935,11 +940,13 @@ async function syncRecordToCloud(rec) {
         apellido2: s.apellido2 || '',
         nombre1: s.nombre1 || '',
         nombre2: s.nombre2 || '',
-        estado: (rec.reportedIds||[]).includes(s.id)
-          ? 'Retirado'
-          : (rec.absentIds.includes(s.id)
-              ? 'Ausente'
-              : ((rec.lateIds||[]).includes(s.id) ? 'Llegó Tarde' : 'Presente')),
+        estado: (rec.invalidIds||[]).includes(s.id)
+          ? 'No válido'
+          : ((rec.reportedIds||[]).includes(s.id)
+              ? 'Retirado'
+              : (rec.absentIds.includes(s.id)
+                  ? 'Ausente'
+                  : ((rec.lateIds||[]).includes(s.id) ? 'Llegó Tarde' : 'Presente'))),
         comentario: (rec.comments||{})[s.id] || ''
       })).concat((rec.extras||[]).map(s => ({
         // Estudiantes "no listados" agregados durante la sesión: viajan
@@ -950,11 +957,13 @@ async function syncRecordToCloud(rec) {
         apellido2: s.apellido2 || '',
         nombre1: s.nombre1 || '',
         nombre2: s.nombre2 || '',
-        estado: (rec.reportedIds||[]).includes(s.id)
-          ? 'Retirado'
-          : (rec.absentIds.includes(s.id)
-              ? 'Ausente'
-              : ((rec.lateIds||[]).includes(s.id) ? 'Llegó Tarde' : 'Presente')),
+        estado: (rec.invalidIds||[]).includes(s.id)
+          ? 'No válido'
+          : ((rec.reportedIds||[]).includes(s.id)
+              ? 'Retirado'
+              : (rec.absentIds.includes(s.id)
+                  ? 'Ausente'
+                  : ((rec.lateIds||[]).includes(s.id) ? 'Llegó Tarde' : 'Presente'))),
         comentario: (rec.comments||{})[s.id] || ''
       })))
     }
@@ -1479,6 +1488,7 @@ function initAttendance() {
   sess.absent   = new Set();
   sess.late     = new Set();
   sess.reported = new Set();
+  sess.invalid  = new Set();
   sess.comments = {};
   sess.extras   = [];
 
@@ -1488,6 +1498,7 @@ function initAttendance() {
     existing.absentIds.forEach(id=>sess.absent.add(id));
     (existing.lateIds||[]).forEach(id=>{ sess.absent.delete(id); sess.late.add(id); });
     (existing.reportedIds||[]).forEach(id=>{ sess.absent.delete(id); sess.late.delete(id); sess.reported.add(id); });
+    (existing.invalidIds||[]).forEach(id=>{ sess.absent.delete(id); sess.late.delete(id); sess.reported.delete(id); sess.invalid.add(id); });
     sess.comments = Object.assign({}, existing.comments||{});
     // Deep-clone para no mutar el record persistido al editar la sesión
     sess.extras   = JSON.parse(JSON.stringify(existing.extras||[]));
@@ -1513,18 +1524,19 @@ function initAttendance() {
 }
 
 // Get current attendance state for a student id:
-//   'p' presente · 'a' ausente · 'l' tarde · 'r' reportado (no listado)
-// Reportado tiene prioridad — el chip y el ciclo de tap quedan suspendidos
-// hasta que el profe quita la marca desde el menú de long-press.
+//   'p' presente · 'a' ausente · 'l' tarde · 'r' retirado · 'i' no válido
+// Retirado y No válido tienen prioridad — el chip y el ciclo de tap quedan
+// suspendidos hasta que el profe quita la marca desde el menú de long-press.
 function attState(id){
+  if(sess.invalid.has(id))  return 'i';
   if(sess.reported.has(id)) return 'r';
   if(sess.absent.has(id))   return 'a';
   if(sess.late.has(id))     return 'l';
   return 'p';
 }
 
-const ATT_LABEL = { p:'Presente', a:'Ausente', l:'Llegó Tarde', r:'Retirado' };
-const ATT_CHIP  = { p:'cp',       a:'ca',      l:'cl',    r:'cr'        };
+const ATT_LABEL = { p:'Presente', a:'Ausente', l:'Llegó Tarde', r:'Retirado', i:'No válido' };
+const ATT_CHIP  = { p:'cp',       a:'ca',      l:'cl',    r:'cr',       i:'ci'         };
 
 function renderStuList(cls) {
   const el=document.getElementById('stu-list');
@@ -1545,7 +1557,7 @@ function renderStuList(cls) {
   }
   el.innerHTML = all.map((s,i)=>{
     const st = attState(s.id);
-    const tileCls = st==='a' ? 'aus' : (st==='l' ? 'tar' : (st==='r' ? 'rep' : ''));
+    const tileCls = st==='a' ? 'aus' : (st==='l' ? 'tar' : (st==='r' ? 'rep' : (st==='i' ? 'inv' : '')));
     const isExtra = sortedExtras.includes(s);
     const hasCmt  = !!sess.comments[s.id];
     const simatTxt = isExtra ? 'PENDIENTE' : esc(s.simat||'—');
@@ -1573,6 +1585,10 @@ function toggleAbs(id) {
   if (_lpFired) { _lpFired = false; return; }
   if (sess.reported.has(id)) {
     toast('Estudiante retirado. Mantén presionado para opciones.','');
+    return;
+  }
+  if (sess.invalid.has(id)) {
+    toast('Marcado como no válido. Mantén presionado para opciones.','');
     return;
   }
   const cur = attState(id);
@@ -1637,6 +1653,10 @@ function openStuMenu(id) {
   btnReport.innerHTML = sess.reported.has(id)
     ? '🚩 Quitar marca de retirado'
     : '🚩 Marcar como retirado';
+  const btnInvalid = document.getElementById('stu-menu-invalid');
+  btnInvalid.innerHTML = sess.invalid.has(id)
+    ? '❌ Quitar marca de no válido'
+    : '❌ Marcar como no válido';
   const btnComment = document.getElementById('stu-menu-comment');
   btnComment.innerHTML = sess.comments[id]
     ? '📝 Editar comentario'
@@ -1656,6 +1676,23 @@ function stuMenuReport() {
     sess.reported.add(id);
     sess.absent.delete(id);
     sess.late.delete(id);
+    sess.invalid.delete(id);
+  }
+  closeStuMenu();
+  const cls = getCls(sess.classId);
+  if (cls) renderStuList(cls);
+  updateAttCounters();
+}
+function stuMenuInvalid() {
+  if (!_stuMenuId) return;
+  const id = _stuMenuId;
+  if (sess.invalid.has(id)) {
+    sess.invalid.delete(id);
+  } else {
+    sess.invalid.add(id);
+    sess.absent.delete(id);
+    sess.late.delete(id);
+    sess.reported.delete(id);
   }
   closeStuMenu();
   const cls = getCls(sess.classId);
@@ -1720,6 +1757,7 @@ function saveExtraStudent() {
   const doc = document.getElementById('ex-doc').value.trim();
   if (!ap1) { toast('Apellido 1 obligatorio','err'); return; }
   if (!n1)  { toast('Nombre 1 obligatorio','err'); return; }
+  if (!doc) { toast('Documento obligatorio (si no lo sabes, escribe -99)','err'); return; }
   const tempId = 'TMP-' + todayISO().replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
   // documento queda solo en el dispositivo del profe; no se manda al Sheet
   // (la lista oficial se gestiona afuera en el Excel del coordinador).
@@ -1746,6 +1784,7 @@ function saveAttendance() {
     absentIds:   [...sess.absent],
     lateIds:     [...sess.late],
     reportedIds: [...sess.reported],
+    invalidIds:  [...sess.invalid],
     comments:    Object.assign({}, sess.comments),
     extras:      JSON.parse(JSON.stringify(sess.extras)),
     savedAt:new Date().toISOString(),
@@ -1867,16 +1906,19 @@ function renderHistory() {
       const evt=getEvt(r.eventId);
       const d=dot(cls);
       const reportedIds = r.reportedIds || [];
+      const invalidIds  = r.invalidIds || [];
       const extras = r.extras || [];
       // total = roster + extras agregados; presCnt = total − ausentes − tarde
-      // − reportados (los reportados no cuentan como presentes ni como
-      // ausentes — son una categoría aparte que no ensucia la tasa).
+      // − reportados − no válidos (los retirados/no válidos no cuentan como
+      // presentes ni como ausentes — son categorías aparte que no ensucian
+      // la tasa).
       const total = cls.students.length + extras.length;
       const absCnt = r.absentIds.length;
       const lateIds = r.lateIds || [];
       const lateCnt = lateIds.length;
       const repCnt  = reportedIds.length;
-      const presCnt = Math.max(total - absCnt - lateCnt - repCnt, 0);
+      const invCnt  = invalidIds.length;
+      const presCnt = Math.max(total - absCnt - lateCnt - repCnt - invCnt, 0);
       const allRoster = cls.students.concat(extras);
       const absNames = r.absentIds
         .map(id => allRoster.find(s=>s.id===id)).filter(Boolean)
@@ -1890,6 +1932,10 @@ function renderHistory() {
         .map(id => allRoster.find(s=>s.id===id)).filter(Boolean)
         .sort((a,b)=>(a.apellido1||'').localeCompare(b.apellido1||'','es'))
         .map(s=>`<span style="background:#EEE;color:#666;border:1px solid #BBB">🚩 ${esc(dname(s))}</span>`).join('');
+      const invNames = invalidIds
+        .map(id => allRoster.find(s=>s.id===id)).filter(Boolean)
+        .sort((a,b)=>(a.apellido1||'').localeCompare(b.apellido1||'','es'))
+        .map(s=>`<span style="background:#E8E4F0;color:#5A4D6E;border:1px solid #5A4D6E">❌ ${esc(dname(s))}</span>`).join('');
       const extraNames = extras
         .slice().sort((a,b)=>(a.apellido1||'').localeCompare(b.apellido1||'','es'))
         .map(s=>`<span style="background:#FFF1E0;color:#A04000;border:1px solid var(--naranja)">+ ${esc(dname(s))}</span>`).join('');
@@ -1912,13 +1958,15 @@ function renderHistory() {
             <div class="hstat"><div class="hdot" style="background:var(--rojo)"></div>${absCnt} ausentes</div>
             ${lateCnt?`<div class="hstat"><div class="hdot" style="background:var(--amarillo)"></div>${lateCnt} llegó tarde</div>`:''}
             ${repCnt?`<div class="hstat"><div class="hdot" style="background:#888"></div>${repCnt} retirados</div>`:''}
+            ${invCnt?`<div class="hstat"><div class="hdot" style="background:#5A4D6E"></div>${invCnt} no válidos</div>`:''}
             ${extras.length?`<div class="hstat"><div class="hdot" style="background:var(--naranja)"></div>${extras.length} no listados</div>`:''}
           </div>
           ${absNames?`<div class="absl">${absNames}</div>`:''}
           ${lateNames?`<div class="absl">${lateNames}</div>`:''}
           ${repNames?`<div class="absl">${repNames}</div>`:''}
+          ${invNames?`<div class="absl">${invNames}</div>`:''}
           ${extraNames?`<div class="absl">${extraNames}</div>`:''}
-          ${(!absNames && !lateNames && !repNames && !extraNames)?'<div style="color:var(--verde);font-weight:700;font-size:.8rem">✓ Todos presentes</div>':''}
+          ${(!absNames && !lateNames && !repNames && !invNames && !extraNames)?'<div style="color:var(--verde);font-weight:700;font-size:.8rem">✓ Todos presentes</div>':''}
         </div>
       </div>`;
     }).join('');
@@ -1945,6 +1993,7 @@ function buildCSV(recs) {
     const cls=getCls(r.classId); if(!cls)return;
     const evt=getEvt(r.eventId);
     const reportedIds = r.reportedIds || [];
+    const invalidIds  = r.invalidIds || [];
     const lateIds = r.lateIds || [];
     const comments = r.comments || {};
     const fac = r.facilitador || {};
@@ -1954,11 +2003,13 @@ function buildCSV(recs) {
       fac.rol||S.profile.rol||'',
       r.date, cls.school||'', cls.name, cls.grade||'', cls.aula||'', evt?evt.name:'', r.slotLabel||''
     ];
-    const stateOf = id => reportedIds.includes(id)
-      ? 'Retirado'
-      : (r.absentIds.includes(id)
-          ? 'Ausente'
-          : (lateIds.includes(id) ? 'Llegó Tarde' : 'Presente'));
+    const stateOf = id => invalidIds.includes(id)
+      ? 'No válido'
+      : (reportedIds.includes(id)
+          ? 'Retirado'
+          : (r.absentIds.includes(id)
+              ? 'Ausente'
+              : (lateIds.includes(id) ? 'Llegó Tarde' : 'Presente')));
     sortStu(cls.students).forEach(s=>{
       rows.push(meta.concat([
         s.simat||'', s.apellido1||'', s.apellido2||'', s.nombre1||'', s.nombre2||'',

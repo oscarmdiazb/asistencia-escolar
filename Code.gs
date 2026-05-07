@@ -32,9 +32,10 @@ var CLASES_HEADERS = [
 var CL = { id:0, name:1, school:2, sede:3, jornada:4, grade:5, aula:6,
            simat:7, ap1:8, ap2:9, n1:10, n2:11, pub:12, ver:13 };
 
-// 'estado' acepta: 'Presente' | 'Ausente' | 'Llegó Tarde' | 'Retirado'
+// 'estado' acepta: 'Presente' | 'Ausente' | 'Llegó Tarde' | 'Retirado' | 'No válido'
 //   (datos históricos pueden traer 'Tarde' — el dashboard lee ambos)
-//   - Retirado = el profe lo marcó como "no debería estar en este grupo"
+//   - Retirado  = estaba en la lista pero ya se fue del colegio (deserción real)
+//   - No válido = la lista está mal, no era de este grupo (error de roster)
 // 'DOC' vacío o con prefijo TMP- = estudiante agregado en el aula sin estar
 //   en el roster. La columna 'comentario' es libre, opcional.
 var ASIST_HEADERS = [

@@ -715,9 +715,11 @@ function renderDashboard() {
   const recs = getFilteredRecords();
 
   // ── Aggregate into sessions (group by recordId) ──
-  // 'Retirado' es una categoría aparte: no es presente ni ausente. No
-  // entra en la tasa de asistencia. Se contabiliza solo en la sección
-  // "Estudiantes por revisar".
+  // 'Retirado' y 'No válido' son categorías aparte: no son presente ni
+  // ausente. No entran en la tasa de asistencia. Se contabilizan solo en
+  // la sección "Estudiantes por revisar". Diferencia semántica:
+  //   - Retirado = estaba en la lista pero ya se fue del colegio
+  //   - No válido = la lista está mal, no era de este grupo
   // 'Llegó Tarde' (datos viejos: 'Tarde') cuenta como asistencia (sí
   // vino) — present incluye on-time + tarde. Se contabiliza aparte
   // en `late` para reportes de puntualidad.
@@ -731,7 +733,7 @@ function renderDashboard() {
         facilitador: r.facilitador, present: 0, late: 0, absent: 0, grade: r.grade || '', sede: r.sede || '', jornada: r.jornada || ''
       };
     }
-    if (r.estado === 'Retirado') return;
+    if (r.estado === 'Retirado' || r.estado === 'No válido') return;
     if (r.estado === 'Ausente') sessions[r.recordId].absent++;
     else {
       sessions[r.recordId].present++;
@@ -905,7 +907,7 @@ function renderTimeSeries(recs) {
   const byDate = {};
   recs.forEach(r => {
     if (!r.date) return;
-    if (r.estado === 'Retirado') return;
+    if (r.estado === 'Retirado' || r.estado === 'No válido') return;
     const d = String(r.date).slice(0, 10);
     if (!byDate[d]) byDate[d] = { present: 0, total: 0 };
     byDate[d].total++;
@@ -983,12 +985,15 @@ function renderTimeSeries(recs) {
 }
 
 // ═══════════════════════════════════
-// POR REVISAR — retirados ("sobran") + estudiantes agregados ("faltan")
+// POR REVISAR — retirados / no válidos ("sobran") + agregados ("faltan")
 // ═══════════════════════════════════
 //
 // Dos categorías:
-//   1) Sobran  = filas con estado === 'Retirado'
-//      → estudiante en el roster que un profe marcó como "no debería estar"
+//   1) Sobran  = filas con estado === 'Retirado' o estado === 'No válido'
+//      → Retirado  = estaba en la lista pero ya se fue del colegio
+//      → No válido = la lista está mal, no era de este grupo
+//      Cada par (SIMAT, tipo) genera una fila propia para que el rector
+//      distinga deserción real de errores de roster.
 //   2) Faltan  = filas con SIMAT vacío o que empieza con 'TMP-'
 //      → estudiante que el profe agregó en el aula porque no estaba en lista
 //
@@ -1002,19 +1007,22 @@ function renderReview(recs) {
 
   const isExtra = simat => !simat || /^TMP-/i.test(String(simat));
 
-  // Agrupar "sobran" por SIMAT (el mismo estudiante retirado por varios
-  // profes o varias veces aparece como una sola tarjeta con conteo).
+  // Agrupar "sobran" por (SIMAT, tipo). El mismo estudiante marcado por
+  // varios profes o varias veces aparece como una sola tarjeta con conteo.
+  // Si fue marcado con tipos distintos (retirado en una sesión, no válido
+  // en otra) aparece como dos tarjetas — el rector necesita ver ambas.
   const sobranMap = {};
   // Agrupar "faltan" por (className + nombre completo) — el tempId cambia
   // por sesión así que no sirve como llave estable.
   const faltanMap = {};
 
   recs.forEach(r => {
-    if (r.estado === 'Retirado' && !isExtra(r.simat)) {
-      const key = String(r.simat);
+    const isSobra = r.estado === 'Retirado' || r.estado === 'No válido';
+    if (isSobra && !isExtra(r.simat)) {
+      const key = String(r.simat) + '|' + r.estado;
       if (!sobranMap[key]) {
         sobranMap[key] = {
-          simat: r.simat,
+          simat: r.simat, tipo: r.estado,
           apellidos: [r.apellido1, r.apellido2].filter(Boolean).join(' '),
           nombre: [r.nombre1, r.nombre2].filter(Boolean).join(' '),
           className: r.className, grade: r.grade, jornada: r.jornada,
@@ -1064,12 +1072,18 @@ function renderReview(recs) {
     const cmtTxt = entry.comentarios.length
       ? `<div style="font-size:.78rem;color:var(--text2);margin-top:6px;font-style:italic">📝 ${esc(entry.comentarios.slice(0, 2).join(' · '))}${entry.comentarios.length > 2 ? ' …' : ''}</div>`
       : '';
+    const isInvalid = kind === 'sobra' && entry.tipo === 'No válido';
     const tag = kind === 'sobra'
-      ? `<span class="badge badge-orange">SOBRA · ${entry.dates.size}×</span>`
+      ? (isInvalid
+          ? `<span class="badge" style="background:#E8E4F0;color:#5A4D6E">NO VÁLIDO · ${entry.dates.size}×</span>`
+          : `<span class="badge badge-orange">RETIRADO · ${entry.dates.size}×</span>`)
       : `<span class="badge" style="background:#FFE4D0;color:#A04000">FALTA · ${entry.dates.size}×</span>`;
     const idLine = kind === 'sobra'
       ? `SIMAT: <strong>${esc(entry.simat)}</strong>`
       : `Sin SIMAT (pendiente de validar)`;
+    const markedByLabel = kind === 'sobra'
+      ? (isInvalid ? 'Marcado no válido por' : 'Retirado por')
+      : 'Reportado por';
     return `<div style="padding:14px 16px;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:flex-start;gap:10px">
         <div style="flex:1;min-width:0">
@@ -1079,7 +1093,7 @@ function renderReview(recs) {
             ${esc(entry.className || '')}${entry.grade ? ' · Grado ' + esc(entry.grade) : ''}${entry.jornada ? ' · ' + esc(entry.jornada) : ''}
           </div>
           <div style="font-size:.74rem;color:var(--text2);margin-top:4px">
-            Retirado por: <strong>${esc(teachers)}</strong> · última vez ${fmtDate(lastDate)}
+            ${markedByLabel}: <strong>${esc(teachers)}</strong> · última vez ${fmtDate(lastDate)}
           </div>
           ${cmtTxt}
         </div>
@@ -1120,7 +1134,7 @@ function renderStudentList() {
   const isLate = e => e === 'Llegó Tarde' || e === 'Tarde';
   const stuMap = {};
   recs.forEach(r => {
-    if (r.estado === 'Retirado') return;
+    if (r.estado === 'Retirado' || r.estado === 'No válido') return;
     const key = r.simat || (r.apellido1 + '_' + r.nombre1 + '_' + r.classId);
     if (!stuMap[key]) {
       stuMap[key] = {
@@ -1192,7 +1206,7 @@ function openStudentCard(simat) {
   // y no representan asistencia real.
   const allRecs = DATA.records
     .filter(r => String(r.simat) === String(simat))
-    .filter(r => r.estado !== 'Retirado');
+    .filter(r => (r.estado !== 'Retirado' && r.estado !== 'No válido'));
   if (!allRecs.length) { alert('Este estudiante no tiene registros.'); return; }
 
   const r0 = allRecs[0];
@@ -1344,13 +1358,13 @@ function openReporte() {
   const teachers = new Set(recs.map(r => r.facilitador).filter(Boolean)).size;
   const classes  = new Set(recs.map(r => r.className).filter(Boolean)).size;
   const studentsCount = new Set(
-    recs.filter(r => !isExtra(r.simat) && r.estado !== 'Retirado').map(r => r.simat)
+    recs.filter(r => !isExtra(r.simat) && (r.estado !== 'Retirado' && r.estado !== 'No válido')).map(r => r.simat)
   ).size;
 
   // Asistencia / tardanzas
   let totalPresent = 0, totalAbsent = 0, totalLate = 0;
   recs.forEach(r => {
-    if (r.estado === 'Retirado') return;
+    if (r.estado === 'Retirado' || r.estado === 'No válido') return;
     if (r.estado === 'Ausente') totalAbsent++;
     else {
       totalPresent++;
@@ -1364,7 +1378,7 @@ function openReporte() {
   // Top 5 clases con más ausencias (por tasa, con sample size)
   const byClass = {};
   recs.forEach(r => {
-    if (r.estado === 'Retirado') return;
+    if (r.estado === 'Retirado' || r.estado === 'No válido') return;
     if (!byClass[r.className]) byClass[r.className] = { name: r.className, sessionsSet: new Set(), absent: 0, total: 0 };
     byClass[r.className].sessionsSet.add(r.recordId);
     byClass[r.className].total++;
@@ -1505,7 +1519,7 @@ function buildReporteChartSVG(recs) {
   const byDate = {};
   recs.forEach(r => {
     if (!r.date) return;
-    if (r.estado === 'Retirado') return;
+    if (r.estado === 'Retirado' || r.estado === 'No válido') return;
     const d = String(r.date).slice(0, 10);
     if (!byDate[d]) byDate[d] = { present: 0, total: 0 };
     byDate[d].total++;
