@@ -131,7 +131,7 @@
     .sextra{display:inline-block;margin-left:6px;font-size:.62rem;color:white;background:var(--naranja);padding:1px 6px;border-radius:10px;font-weight:800;letter-spacing:.04em}
     .schip{font-family:var(--fh);font-weight:700;font-size:.7rem;padding:4px 10px;border-radius:20px;
       color:white;flex-shrink:0;text-transform:uppercase;letter-spacing:.03em;transition:background .15s}
-    .cp{background:var(--verde)}.ca{background:var(--rojo)}.cl{background:var(--amarillo);color:#5A4400}.cr{background:#888;color:white}.ci{background:#5A4D6E;color:white}
+    .cp{background:var(--verde)}.ca{background:var(--rojo)}.cl{background:var(--amarillo);color:#5A4400}.cr{background:#888;color:white}.cv{background:#5A4D6E;color:white}
     .ctr-chip-r{background:#888;color:white;border-radius:20px;padding:2px 8px;font-size:.75rem}
     .add-extra-row{padding:14px 16px;border-top:1px dashed var(--border);background:var(--bg)}
 
@@ -1536,7 +1536,7 @@ function attState(id){
 }
 
 const ATT_LABEL = { p:'Presente', a:'Ausente', l:'Llegó Tarde', r:'Retirado', i:'No válido' };
-const ATT_CHIP  = { p:'cp',       a:'ca',      l:'cl',    r:'cr',       i:'ci'         };
+const ATT_CHIP  = { p:'cp',       a:'ca',      l:'cl',    r:'cr',       i:'cv'         };
 
 function renderStuList(cls) {
   const el=document.getElementById('stu-list');
