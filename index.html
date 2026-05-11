@@ -996,14 +996,24 @@ async function syncRecordToCloud(rec) {
       rec.synced = true;
       save();
       updateSyncBadge();
+      // Diagnóstico: si el servidor reporta menos comentarios escritos que
+      // los que mandamos, hay un mismatch (probable Code.gs desplegado viejo).
+      const sentCmts = payload.record.students.filter(s => s.comentario).length;
+      const wroteCmts = (typeof result.commentsWritten === 'number') ? result.commentsWritten : -1;
+      if (sentCmts > 0 && wroteCmts === 0) {
+        toast('⚠️ Mandé ' + sentCmts + ' comentario(s) pero el servidor escribió 0. Code.gs desactualizado.', 'err');
+      } else if (sentCmts > 0 && wroteCmts === -1) {
+        toast('⚠️ Mandé ' + sentCmts + ' comentario(s) pero el servidor no confirmó. Redeploya Code.gs.', 'err');
+      }
     } else {
       throw new Error(result.error || 'Sync failed');
     }
   } catch (err) {
-    // Queue for retry
+    // Queue for retry — y avisar al monitor que algo falló
     S.syncQueue.push(payload);
     save();
     updateSyncBadge();
+    toast('Sync falló: ' + (err.message || 'error de red') + ' (en cola)', 'err');
   }
 }
 
@@ -1806,7 +1816,11 @@ function saveAttendance() {
   if(!S.profile.saveCount) S.profile.saveCount=0;
   S.profile.saveCount++;
   save();
-  toast('✅ Asistencia guardada','ok');
+  // Conteo de comentarios — útil para que el monitor confirme que SÍ se
+  // guardaron antes de salir a sincronizar. Si dice "0 comentarios" pero
+  // el monitor escribió algunos, el bug está en el long-press/modal.
+  const cmtCount = Object.values(rec.comments||{}).filter(v => v && String(v).trim()).length;
+  toast('✅ Asistencia guardada' + (cmtCount?` · ${cmtCount} comentario${cmtCount===1?'':'s'}`:''), 'ok');
   // Cloud sync (non-blocking)
   if (cloudOk()) syncRecordToCloud(rec);
   stack=['home']; go('home'); renderHome();

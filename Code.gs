@@ -758,9 +758,12 @@ function handlePushAttendance(body, teacher) {
 
   var now = new Date().toISOString();
   var newRows = [];
+  var commentsWritten = 0;
 
   if (Array.isArray(record.students)) {
     record.students.forEach(function(s) {
+      var cmt = s.comentario || '';
+      if (cmt) commentsWritten++;
       newRows.push([
         record.recordId, record.classId, record.className || '',
         record.sede || '', record.jornada || '', record.grade || '',
@@ -769,7 +772,7 @@ function handlePushAttendance(body, teacher) {
         s.nombre1 || '', s.nombre2 || '', s.estado,
         record.facilitador || '', record.facilitadorId || '',
         record.facilitadorRol || '', record.savedAt || '', now,
-        s.comentario || ''
+        cmt
       ]);
     });
   }
@@ -785,7 +788,7 @@ function handlePushAttendance(body, teacher) {
   }
   SpreadsheetApp.flush();
 
-  return { ok: true, rowsWritten: newRows.length };
+  return { ok: true, rowsWritten: newRows.length, commentsWritten: commentsWritten };
 }
 
 // ═══════════════════════════════════
