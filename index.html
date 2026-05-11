@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!--
+  AulaPresente — Sistema de asistencia escolar
+  Copyright (c) 2026 Oscar M. Diaz-Botia (Paris School of Economics)
+  Licensed under the MIT License. See LICENSE file for details.
+  Repository: https://github.com/oscarmdiazb/asistencia-escolar
+-->
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -75,6 +81,9 @@
     .stat-box .n{font-family:var(--fh);font-size:1.4rem;font-weight:900}
     .stat-box .l{font-size:.62rem;opacity:.8;text-transform:uppercase;letter-spacing:.03em}
     .home-actions{padding:14px;display:flex;flex-direction:column;gap:10px}
+    .app-attrib{padding:18px 16px 24px;text-align:center;font-size:.7rem;color:var(--text2);line-height:1.6;border-top:1px solid var(--border);margin-top:8px}
+    .app-attrib strong{color:var(--text);font-family:var(--fh);font-weight:800}
+    .app-attrib a{color:var(--azul);text-decoration:none}
 
     /* ── Buttons ── */
     .btn{font-family:var(--fh);font-weight:700;font-size:1rem;border:none;border-radius:12px;
@@ -303,6 +312,11 @@
       <button class="btn bp" onclick="openStats()" style="background:var(--morado)">📈 Estadísticas</button>
       <button class="btn bs" onclick="openSettings()">🎯 Eventos y Horarios</button>
       <div id="cloud-buttons"></div>
+    </div>
+    <div class="app-attrib">
+      <strong>AulaPresente</strong> · © 2026 Oscar M. Diaz-Botia<br>
+      Paris School of Economics · Licencia MIT<br>
+      <a href="https://github.com/oscarmdiazb/asistencia-escolar" target="_blank" rel="noopener">github.com/oscarmdiazb/asistencia-escolar</a>
     </div>
   </div>
 

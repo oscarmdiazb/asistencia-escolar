@@ -1,6 +1,10 @@
 /**
  * AulaPresente — Google Apps Script (Bound Script)
  *
+ * Copyright (c) 2026 Oscar M. Diaz-Botia (Paris School of Economics)
+ * Licensed under the MIT License. See LICENSE file for details.
+ * Repository: https://github.com/oscarmdiazb/asistencia-escolar
+ *
  * This script is embedded inside the school's Google Sheet template.
  * Each school has their own copy of this Sheet + Script.
  *

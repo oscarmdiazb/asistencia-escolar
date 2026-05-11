@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+title: "AulaPresente — Sistema de asistencia escolar para Bogotá"
+message: "Si usas este software, por favor cítalo como se indica abajo."
+type: software
+authors:
+  - given-names: "Oscar M."
+    family-names: "Diaz-Botia"
+    affiliation: "Paris School of Economics"
+    email: "oscarmdiazb@gmail.com"
+url: "https://aulapresente.com"
+repository-code: "https://github.com/oscarmdiazb/asistencia-escolar"
+license: MIT
+year: 2026
+keywords:
+  - school-attendance
+  - education
+  - bogota
+  - colombia
+  - SED
+  - mobile-first
