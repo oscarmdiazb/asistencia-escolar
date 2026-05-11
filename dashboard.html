@@ -379,6 +379,9 @@
         <div class="kpi"><div class="value" id="kpi-late" style="color:#7A5C00">0</div><div class="label">Llegadas tarde</div><div class="sublabel" id="kpi-late-sub">—</div></div>
         <div class="kpi"><div class="value" id="kpi-classes" style="color:var(--morado)">0</div><div class="label">Clases activas</div></div>
         <div class="kpi"><div class="value" id="kpi-alerts" style="color:var(--rojo)">0</div><div class="label">Estudiantes en riesgo</div><div class="sublabel" id="kpi-alerts-sub">3+ ausencias</div></div>
+        <div class="kpi"><div class="value" id="kpi-retirados" style="color:#A04000">0</div><div class="label">Retirados</div><div class="sublabel" id="kpi-retirados-sub">Por dar de baja</div></div>
+        <div class="kpi"><div class="value" id="kpi-nuevos" style="color:var(--naranja)">0</div><div class="label">Nuevos (no listados)</div><div class="sublabel" id="kpi-nuevos-sub">Por agregar al roster</div></div>
+        <div class="kpi"><div class="value" id="kpi-invalidos" style="color:#5A4D6E">0</div><div class="label">No válidos</div><div class="sublabel" id="kpi-invalidos-sub">Roster a corregir</div></div>
       </div>
 
       <!-- Filters -->
@@ -573,6 +576,7 @@ async function connectAndLoad() {
     }
 
     DATA = result;
+    _ROSTER_SIMATS_CACHE = null;
     location.hash = encodeURIComponent(url);
     // Cache the admin token per URL if the user wants to remember it
     try {
@@ -687,6 +691,29 @@ function populateFilters() {
     students.map(([simat, label]) => `<option value="${esc(simat)}">${esc(label)}</option>`).join('');
 }
 
+// Set of SIMATs presentes en el roster oficial (pestaña Clases). Se reconstruye
+// en cada llamada para reflejar refrescos. Un estudiante es "nuevo" si su SIMAT
+// no aparece aquí (o si trae el prefijo TMP- de versiones anteriores).
+let _ROSTER_SIMATS_CACHE = null;
+function rosterSimats() {
+  if (_ROSTER_SIMATS_CACHE) return _ROSTER_SIMATS_CACHE;
+  const set = new Set();
+  (DATA && DATA.classes || []).forEach(c => {
+    (c.students || []).forEach(s => {
+      const v = String(s.simat || '').trim();
+      if (v) set.add(v);
+    });
+  });
+  _ROSTER_SIMATS_CACHE = set;
+  return set;
+}
+function isExtraSimat(simat) {
+  const s = String(simat || '').trim();
+  if (!s) return true;
+  if (/^TMP-/i.test(s)) return true;          // datos antiguos
+  return !rosterSimats().has(s);
+}
+
 function getFilteredRecords() {
   if (!DATA) return [];
   let recs = DATA.records;
@@ -782,6 +809,28 @@ function renderDashboard() {
   document.getElementById('kpi-alerts-sub').textContent = critical
     ? `3+ ausencias · ${critical} crítico${critical === 1 ? '' : 's'} (5+)`
     : '3+ ausencias';
+
+  // ── KPIs de revisión: Retirados, Nuevos, No válidos ──
+  // Cada uno cuenta ESTUDIANTES únicos (no filas), aplicando los filtros
+  // activos. Retirados / No válidos se identifican por estado; Nuevos por
+  // ausencia del SIMAT en el roster oficial.
+  const retiradosSet = new Set();
+  const invalidosSet = new Set();
+  const nuevosSet = new Set();
+  recs.forEach(r => {
+    if (r.estado === 'Retirado' && !isExtraSimat(r.simat)) {
+      retiradosSet.add(String(r.simat));
+    } else if (r.estado === 'No válido' && !isExtraSimat(r.simat)) {
+      invalidosSet.add(String(r.simat));
+    } else if (isExtraSimat(r.simat)) {
+      const fullName = [r.apellido1, r.apellido2, r.nombre1, r.nombre2]
+        .filter(Boolean).join(' ').toUpperCase();
+      nuevosSet.add((r.className || '') + '|' + fullName);
+    }
+  });
+  document.getElementById('kpi-retirados').textContent = retiradosSet.size;
+  document.getElementById('kpi-nuevos').textContent    = nuevosSet.size;
+  document.getElementById('kpi-invalidos').textContent = invalidosSet.size;
 
   // ── Chart: absences by class ──
   // Tracking sessionsCount para mostrar el `n` (sample size). Sin esto, una
@@ -1005,15 +1054,15 @@ function renderReview(recs) {
   const body = document.getElementById('review-body');
   const sub  = document.getElementById('review-subtitle');
 
-  const isExtra = simat => !simat || /^TMP-/i.test(String(simat));
+  const isExtra = isExtraSimat;
 
   // Agrupar "sobran" por (SIMAT, tipo). El mismo estudiante marcado por
   // varios profes o varias veces aparece como una sola tarjeta con conteo.
   // Si fue marcado con tipos distintos (retirado en una sesión, no válido
   // en otra) aparece como dos tarjetas — el rector necesita ver ambas.
   const sobranMap = {};
-  // Agrupar "faltan" por (className + nombre completo) — el tempId cambia
-  // por sesión así que no sirve como llave estable.
+  // Agrupar "faltan" por (className + nombre completo) — más estable que
+  // el SIMAT, que puede traer documentos provisionales (-99) o variar.
   const faltanMap = {};
 
   recs.forEach(r => {
@@ -1042,13 +1091,16 @@ function renderReview(recs) {
           nombre: [r.nombre1, r.nombre2].filter(Boolean).join(' '),
           className: r.className, grade: r.grade, jornada: r.jornada,
           teachers: new Set(), dates: new Set(), comentarios: [],
-          tempIds: new Set()
+          docs: new Set()
         };
       }
       faltanMap[key].teachers.add(r.facilitador || '(sin nombre)');
       faltanMap[key].dates.add(String(r.date).slice(0, 10));
       if (r.comentario) faltanMap[key].comentarios.push(r.comentario);
-      if (r.simat) faltanMap[key].tempIds.add(String(r.simat));
+      // r.simat trae el documento que ingresó el profe (o TMP-... en datos
+      // viejos). Lo guardamos para mostrarlo en la tarjeta.
+      const docVal = String(r.simat || '').trim();
+      if (docVal && !/^TMP-/i.test(docVal) && docVal !== '-99') faltanMap[key].docs.add(docVal);
     }
   });
 
@@ -1080,7 +1132,9 @@ function renderReview(recs) {
       : `<span class="badge" style="background:#FFE4D0;color:#A04000">FALTA · ${entry.dates.size}×</span>`;
     const idLine = kind === 'sobra'
       ? `SIMAT: <strong>${esc(entry.simat)}</strong>`
-      : `Sin SIMAT (pendiente de validar)`;
+      : (entry.docs && entry.docs.size
+          ? `Doc: <strong>${esc([...entry.docs].join(' / '))}</strong> · pendiente de validar`
+          : `Sin documento · pendiente de validar`);
     const markedByLabel = kind === 'sobra'
       ? (isInvalid ? 'Marcado no válido por' : 'Retirado por')
       : 'Reportado por';
@@ -1291,18 +1345,20 @@ function openStudentCard(simat) {
         <div class="ficha-section">
           <h3>Historial (${sessions} ${sessions === 1 ? 'sesión' : 'sesiones'})</h3>
           <table class="ficha-hist">
-            <thead><tr><th>Fecha</th><th>Evento</th><th>Franja</th><th>Docente</th><th>Estado</th></tr></thead>
+            <thead><tr><th>Fecha</th><th>Evento</th><th>Franja</th><th>Docente</th><th>Estado</th><th>Comentario</th></tr></thead>
             <tbody>
               ${hist.slice(0, 30).map(r => {
                 const isLateRow = r.estado === 'Llegó Tarde' || r.estado === 'Tarde';
                 const isAbsentRow = r.estado === 'Ausente';
                 const cls = isAbsentRow ? 'ausente' : (isLateRow ? 'tarde' : 'presente');
+                const cmt = r.comentario ? esc(r.comentario) : '';
                 return `<tr>
                   <td>${fmtDate(r.date)}</td>
                   <td>${esc(r.eventName) || '—'}</td>
                   <td>${esc(r.slotLabel) || '—'}</td>
                   <td>${esc(r.facilitador) || '—'}</td>
                   <td class="${cls}">${esc(r.estado)}</td>
+                  <td style="font-style:${cmt?'italic':'normal'};color:${cmt?'var(--text)':'var(--text2)'};font-size:.82rem">${cmt || '—'}</td>
                 </tr>`;
               }).join('')}
             </tbody>
@@ -1340,7 +1396,7 @@ function openReporte() {
   if (!DATA) return;
   const recs = getFilteredRecords();
   const isLate = e => e === 'Llegó Tarde' || e === 'Tarde';
-  const isExtra = simat => !simat || /^TMP-/i.test(String(simat));
+  const isExtra = isExtraSimat;
 
   // Período: prioriza filter-from/to; si no, min/max de los registros
   let from = document.getElementById('filter-from').value;

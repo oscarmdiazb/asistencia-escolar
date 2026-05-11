@@ -724,8 +724,9 @@ let stack = ['home'];
 //              este estudiante no era de este grupo, error de roster)
 //   comments = { studentId: texto } — nota libre del profe por estudiante en
 //              esta sesión (no persiste entre sesiones)
-//   extras   = [{id, simat (= tempId TMP-...), apellido1, apellido2, nombre1, nombre2}]
-//              estudiantes agregados durante la sesión que no estaban en el roster
+//   extras   = [{id, simat (= documento que ingresó el profe), apellido1, apellido2, nombre1, nombre2}]
+//              estudiantes agregados durante la sesión que no estaban en el roster.
+//              El dashboard los detecta por ausencia en el roster oficial.
 let sess = { classId:null, eventId:null, slotLabel:null, date:null,
              absent:new Set(), late:new Set(),
              reported:new Set(), invalid:new Set(), comments:{}, extras:[] };
@@ -867,7 +868,14 @@ async function cloudFetchClasses() {
         S.records.forEach(r => {
           if (r.classId !== existing.id) return;
           r.absentIds = r.absentIds.map(id => oldToNew[id] || id);
-          if (Array.isArray(r.lateIds)) r.lateIds = r.lateIds.map(id => oldToNew[id] || id);
+          if (Array.isArray(r.lateIds))     r.lateIds     = r.lateIds.map(id => oldToNew[id] || id);
+          if (Array.isArray(r.reportedIds)) r.reportedIds = r.reportedIds.map(id => oldToNew[id] || id);
+          if (Array.isArray(r.invalidIds))  r.invalidIds  = r.invalidIds.map(id => oldToNew[id] || id);
+          if (r.comments && typeof r.comments === 'object') {
+            const nc = {};
+            Object.keys(r.comments).forEach(k => { nc[oldToNew[k] || k] = r.comments[k]; });
+            r.comments = nc;
+          }
         });
       }
       existing.students = students;
@@ -950,8 +958,9 @@ async function syncRecordToCloud(rec) {
         comentario: (rec.comments||{})[s.id] || ''
       })).concat((rec.extras||[]).map(s => ({
         // Estudiantes "no listados" agregados durante la sesión: viajan
-        // como filas extra de Asistencia con SIMAT = tempId TMP-... así el
-        // dashboard puede separarlos en "Estudiantes por revisar".
+        // como filas extra con SIMAT = documento ingresado por el profe.
+        // El dashboard los separa en "Por revisar" detectando que ese
+        // SIMAT no aparece en el roster oficial.
         simat: s.simat || '',
         apellido1: s.apellido1 || '',
         apellido2: s.apellido2 || '',
@@ -1560,7 +1569,7 @@ function renderStuList(cls) {
     const tileCls = st==='a' ? 'aus' : (st==='l' ? 'tar' : (st==='r' ? 'rep' : (st==='i' ? 'inv' : '')));
     const isExtra = sortedExtras.includes(s);
     const hasCmt  = !!sess.comments[s.id];
-    const simatTxt = isExtra ? 'PENDIENTE' : esc(s.simat||'—');
+    const simatTxt = isExtra ? ('DOC ' + esc(s.simat||'—') + ' · NUEVO') : esc(s.simat||'—');
     return `<div class="stu-tile ${tileCls}" id="t-${s.id}"
               ontouchstart="lpStart('${s.id}',event)"
               ontouchend="lpEnd()"
@@ -1739,8 +1748,8 @@ function clearComment() {
 }
 
 /* ─── Agregar estudiante "no listado" en sesión ───
-   Genera tempId TMP-YYYYMMDD-XXXX que viaja como SIMAT al Sheet, así el
-   dashboard puede filtrarlos. El estudiante queda sólo en esta sesión. */
+   El documento que el profe ingresa viaja como SIMAT al Sheet. El dashboard
+   detecta "nuevos" por ausencia en el roster oficial, no por un prefijo. */
 function openAddExtraModal() {
   ['ex-ap1','ex-ap2','ex-n1','ex-n2','ex-doc'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('extra-modal').classList.add('open');
@@ -1758,14 +1767,10 @@ function saveExtraStudent() {
   if (!ap1) { toast('Apellido 1 obligatorio','err'); return; }
   if (!n1)  { toast('Nombre 1 obligatorio','err'); return; }
   if (!doc) { toast('Documento obligatorio (si no lo sabes, escribe -99)','err'); return; }
-  const tempId = 'TMP-' + todayISO().replace(/-/g,'') + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
-  // documento queda solo en el dispositivo del profe; no se manda al Sheet
-  // (la lista oficial se gestiona afuera en el Excel del coordinador).
   sess.extras.push({
     id: 's_extra_' + Date.now() + '_' + Math.floor(Math.random()*99999),
-    simat: tempId,
-    apellido1: ap1, apellido2: ap2, nombre1: n1, nombre2: n2,
-    documento: doc
+    simat: doc,
+    apellido1: ap1, apellido2: ap2, nombre1: n1, nombre2: n2
   });
   closeAddExtraModal();
   toast('Estudiante agregado a esta sesión','ok');

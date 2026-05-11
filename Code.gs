@@ -36,8 +36,10 @@ var CL = { id:0, name:1, school:2, sede:3, jornada:4, grade:5, aula:6,
 //   (datos históricos pueden traer 'Tarde' — el dashboard lee ambos)
 //   - Retirado  = estaba en la lista pero ya se fue del colegio (deserción real)
 //   - No válido = la lista está mal, no era de este grupo (error de roster)
-// 'DOC' vacío o con prefijo TMP- = estudiante agregado en el aula sin estar
-//   en el roster. La columna 'comentario' es libre, opcional.
+// 'DOC' es el documento real del estudiante (lo trae del roster oficial,
+//   o lo ingresa el profe si agrega un "no listado"). Los "no listados" se
+//   detectan en el dashboard por ausencia en el roster oficial — el prefijo
+//   TMP- solo aparece en datos legados. La columna 'comentario' es libre.
 var ASIST_HEADERS = [
   'recordId', 'classId', 'className', 'SEDE', 'JORNADA', 'GRADO_COD',
   'date', 'eventName', 'slotLabel',
@@ -159,6 +161,27 @@ function ensureTab(name, headers) {
     sheet = ss.insertSheet(name);
     sheet.appendRow(headers);
     sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+    sheet.setFrozenRows(1);
+    return sheet;
+  }
+  // Auto-sync: si la hoja existe pero le faltan columnas (porque la lista
+  // de encabezados creció en una versión nueva), las agregamos y
+  // reescribimos la fila 1. Sin esto, si el coordinador no corrió
+  // "Migrar encabezados", la columna nueva (ej. comentario) puede aparecer
+  // sin nombre — o si Apps Script viejo escribió 20 columnas y luego la
+  // versión nueva escribe 21, el header puede quedar desalineado.
+  if (sheet.getMaxColumns() < headers.length) {
+    sheet.insertColumnsAfter(sheet.getMaxColumns(), headers.length - sheet.getMaxColumns());
+  }
+  var currentHeaders = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
+  var needsSync = false;
+  for (var i = 0; i < headers.length; i++) {
+    if (String(currentHeaders[i] || '') !== String(headers[i])) { needsSync = true; break; }
+  }
+  if (needsSync) {
+    sheet.getRange(1, 1, 1, headers.length)
+         .setValues([headers])
+         .setFontWeight('bold');
     sheet.setFrozenRows(1);
   }
   return sheet;
