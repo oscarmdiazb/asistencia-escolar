@@ -1012,11 +1012,12 @@ async function syncRecordToCloud(rec) {
       updateSyncBadge();
       // Diagnóstico: si el servidor reporta menos comentarios escritos que
       // los que mandamos, hay un mismatch (probable Code.gs desplegado viejo).
+      // Omitir si gsFetch perdió el cuerpo de la respuesta por el redirect de Apps Script.
       const sentCmts = payload.record.students.filter(s => s.comentario).length;
       const wroteCmts = (typeof result.commentsWritten === 'number') ? result.commentsWritten : -1;
       if (sentCmts > 0 && wroteCmts === 0) {
         toast('⚠️ Mandé ' + sentCmts + ' comentario(s) pero el servidor escribió 0. Code.gs desactualizado.', 'err');
-      } else if (sentCmts > 0 && wroteCmts === -1) {
+      } else if (sentCmts > 0 && wroteCmts === -1 && !result.redirected) {
         toast('⚠️ Mandé ' + sentCmts + ' comentario(s) pero el servidor no confirmó. Redeploya Code.gs.', 'err');
       }
     } else {
